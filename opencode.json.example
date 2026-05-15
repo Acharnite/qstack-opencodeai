@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "gbrain": {
+      "type": "local",
+      "command": ["bun", "gbrain", "serve"],
+      "enabled": true
+    }
+  }
+}

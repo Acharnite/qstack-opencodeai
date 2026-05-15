@@ -182,6 +182,20 @@ files_modified:
 The `files_modified` list comes from `git status --short` (both staged and unstaged
 modified files). Use relative paths from the repo root.
 
+### Step 5: Write to GBrain
+
+If gbrain is available, persist the context summary as a brain page for cross-session retrieval:
+
+```bash
+if command -v gbrain >/dev/null 2>&1 && [ -f "$HOME/.gbrain/config.json" ]; then
+  gbrain put_page --title "Session: {title} ({timestamp})" --tags "session,checkpoint,{SLUG}" <<'GBEOF'
+{summary in markdown from Step 2 and Step 4}
+GBEOF
+fi
+```
+
+Use the same summary content from Step 2 and the YAML frontmatter from Step 4. Include branch, timestamp, files modified, decisions, and remaining work. This makes the context searchable via `gbrain search` in future sessions. If gbrain is not available, skip this step silently.
+
 After writing, confirm to the user:
 
 ```

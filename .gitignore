@@ -13,6 +13,7 @@ bin/gstack-global-discover
 .factory/
 .kiro/
 .opencode/
+opencode.json
 .slate/
 .cursor/
 .openclaw/

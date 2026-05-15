@@ -79,7 +79,12 @@ _ROUTING_DECLINED=$(${ctx.paths.binDir}/gstack-config get routing_declined 2>/de
 echo "HAS_ROUTING: $_HAS_ROUTING"
 echo "ROUTING_DECLINED: $_ROUTING_DECLINED"
 _VENDORED="no"
-if [ -d ".claude/skills/gstack" ] && [ ! -L ".claude/skills/gstack" ]; then
+if [ -d ".opencode/skills/gstack" ] && [ ! -L ".opencode/skills/gstack" ]; then
+  if [ -f ".opencode/skills/gstack/VERSION" ] || [ -d ".opencode/skills/gstack/.git" ]; then
+    _VENDORED="yes"
+  fi
+fi
+if [ "$_VENDORED" = "no" ] && [ -d ".claude/skills/gstack" ] && [ ! -L ".claude/skills/gstack" ]; then
   if [ -f ".claude/skills/gstack/VERSION" ] || [ -d ".claude/skills/gstack/.git" ]; then
     _VENDORED="yes"
   fi

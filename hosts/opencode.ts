@@ -28,7 +28,7 @@ const opencode: HostConfig = {
     { from: '.claude/skills', to: '.opencode/skills' },
   ],
 
-  suppressedResolvers: ['GBRAIN_CONTEXT_LOAD', 'GBRAIN_SAVE_RESULTS'],
+  suppressedResolvers: [],
 
   runtimeRoot: {
     globalSymlinks: ['bin', 'browse/dist', 'browse/bin', 'design/dist', 'gstack-upgrade', 'ETHOS.md', 'review/specialists', 'qa/templates', 'qa/references', 'plan-devex-review/dx-hall-of-fame.md'],
@@ -42,7 +42,7 @@ const opencode: HostConfig = {
     linkingStrategy: 'symlink-generated',
   },
 
-  learningsMode: 'basic',
+  learningsMode: 'full',
 };
 
 export default opencode;

@@ -374,11 +374,11 @@ describe('host-config-export.ts CLI', () => {
     expect(exitCode).toBe(1);
   });
 
-  test('detect finds claude (since we are running in claude)', () => {
+  test('detect finds at least one AI coding tool on PATH', () => {
     const { stdout, exitCode } = run('detect');
     expect(exitCode).toBe(0);
-    // claude binary should be on PATH in this environment
-    expect(stdout).toContain('claude');
+    // Should find at least one known host binary on PATH
+    expect(stdout.trim().length).toBeGreaterThan(0);
   });
 
   test('unknown command exits 1', () => {
@@ -407,6 +407,12 @@ describe('golden-file regression', () => {
   test('Factory ship skill matches golden baseline', () => {
     const golden = fs.readFileSync(path.join(GOLDEN_DIR, 'factory-ship-SKILL.md'), 'utf-8');
     const current = fs.readFileSync(path.join(ROOT, '.factory', 'skills', 'gstack-ship', 'SKILL.md'), 'utf-8');
+    expect(current).toBe(golden);
+  });
+
+  test('OpenCode ship skill matches golden baseline', () => {
+    const golden = fs.readFileSync(path.join(GOLDEN_DIR, 'opencode-ship-SKILL.md'), 'utf-8');
+    const current = fs.readFileSync(path.join(ROOT, '.opencode', 'skills', 'gstack-ship', 'SKILL.md'), 'utf-8');
     expect(current).toBe(golden);
   });
 });

@@ -321,8 +321,9 @@ working directory (gitignored). This means skill changes are **live immediately*
 great for rapid iteration, risky during big refactors where half-written skills
 could break other Claude Code sessions using gstack concurrently.
 
-**Check once per session:** Run `ls -la .claude/skills/gstack` to see if it's a
-symlink or a real copy. If it's a symlink to your working directory, be aware that:
+**Check once per session:** Run `ls -la .claude/skills/gstack` (or
+`.opencode/skills/gstack` on opencode) to see if it's a symlink or a real copy.
+If it's a symlink to your working directory, be aware that:
 - Template changes + `bun run gen:skill-docs` immediately affect all gstack invocations
 - Breaking changes to SKILL.md.tmpl files can break concurrent gstack sessions
 - During large refactors, remove the symlink (`rm .claude/skills/gstack`) so the
@@ -751,15 +752,20 @@ Repeat for each skill: `gstack-openclaw-ceo-review`, `gstack-openclaw-investigat
 
 ## Deploying to the active skill
 
-The active skill lives at `~/.claude/skills/gstack/`. After making changes:
+The active skill lives at `~/.claude/skills/gstack/` (or
+`~/.config/opencode/skills/gstack/` on opencode). After making changes:
 
 1. Push your branch
-2. Fetch and reset in the skill directory: `cd ~/.claude/skills/gstack && git fetch origin && git reset --hard origin/main`
+2. Fetch and reset in the skill directory:
+   `cd ~/.claude/skills/gstack && git fetch origin && git reset --hard origin/main`
+   (or `~/.config/opencode/skills/gstack/` on opencode)
 3. Rebuild: `cd ~/.claude/skills/gstack && bun run build`
 
 Or copy the binaries directly:
 - `cp browse/dist/browse ~/.claude/skills/gstack/browse/dist/browse`
 - `cp design/dist/design ~/.claude/skills/gstack/design/dist/design`
+
+(Adjust paths to `~/.config/opencode/skills/gstack/` if using opencode.)
 
 ## Skill routing
 
@@ -815,3 +821,12 @@ auto-sync across all worktrees, run `gbrain autopilot --install` once per
 machine — gbrain's daemon handles incremental refresh on a schedule.
 
 <!-- gstack-gbrain-search-guidance:end -->
+
+## Deploy Configuration (configured by /setup-deploy)
+- Platform: GitHub-only — no server deploy
+- Production URL: none (CLI tool, installed via git/setup)
+- Deploy workflow: `.github/workflows/evals.yml` (CI)
+- Deploy status command: GitHub Actions — check CI status on PR
+- Merge method: squash
+- Project type: CLI
+- Post-deploy health check: none — CI passing is the gate

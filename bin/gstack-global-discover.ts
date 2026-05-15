@@ -17,7 +17,7 @@ import { homedir } from "os";
 // ── Types ──────────────────────────────────────────────────────────────────
 
 interface Session {
-  tool: "claude_code" | "codex" | "gemini";
+  tool: "claude_code" | "codex" | "gemini" | "opencode";
   cwd: string;
 }
 
@@ -25,7 +25,7 @@ interface Repo {
   name: string;
   remote: string;
   paths: string[];
-  sessions: { claude_code: number; codex: number; gemini: number };
+  sessions: { claude_code: number; codex: number; gemini: number; opencode: number };
 }
 
 interface DiscoveryResult {
@@ -36,6 +36,7 @@ interface DiscoveryResult {
     claude_code: { total_sessions: number; repos: number };
     codex: { total_sessions: number; repos: number };
     gemini: { total_sessions: number; repos: number };
+    opencode: { total_sessions: number; repos: number };
   };
   total_sessions: number;
   total_repos: number;
@@ -362,6 +363,71 @@ function scanCodex(since: Date): Session[] {
   return sessions;
 }
 
+function scanOpenCode(since: Date): Session[] {
+  const projectsDir = join(homedir(), ".config", "opencode", "projects");
+  if (!existsSync(projectsDir)) return [];
+
+  const sessions: Session[] = [];
+
+  let dirs: string[];
+  try {
+    dirs = readdirSync(projectsDir);
+  } catch (err: any) {
+    if (err?.code === 'ENOENT' || err?.code === 'EACCES') return [];
+    throw err;
+  }
+
+  for (const dirName of dirs) {
+    const dirPath = join(projectsDir, dirName);
+    try {
+      const stat = statSync(dirPath);
+      if (!stat.isDirectory()) continue;
+    } catch {
+      continue;
+    }
+
+    // Find JSONL files
+    let jsonlFiles: string[];
+    try {
+      jsonlFiles = readdirSync(dirPath).filter((f) => f.endsWith(".jsonl"));
+    } catch {
+      continue;
+    }
+    if (jsonlFiles.length === 0) continue;
+
+    // Coarse mtime pre-filter
+    const hasRecentFile = jsonlFiles.some((f) => {
+      try {
+        return statSync(join(dirPath, f)).mtime >= since;
+      } catch (err: any) {
+        if (err?.code === 'ENOENT' || err?.code === 'EACCES') return false;
+        throw err;
+      }
+    });
+    if (!hasRecentFile) continue;
+
+    // Resolve cwd: decode directory name (same convention as Claude Code)
+    // e.g., -home-kiffer-gstack → /home/kiffer/gstack
+    const decoded = dirName.replace(/^-/, "/").replace(/-/g, "/");
+    const cwd = existsSync(decoded) ? decoded : null;
+    if (!cwd) continue;
+
+    const recentFiles = jsonlFiles.filter((f) => {
+      try {
+        return statSync(join(dirPath, f)).mtime >= since;
+      } catch (err: any) {
+        if (err?.code === 'ENOENT' || err?.code === 'EACCES') return false;
+        throw err;
+      }
+    });
+    for (let i = 0; i < recentFiles.length; i++) {
+      sessions.push({ tool: "opencode", cwd });
+    }
+  }
+
+  return sessions;
+}
+
 function scanGemini(since: Date): Session[] {
   const tmpDir = join(homedir(), ".gemini", "tmp");
   if (!existsSync(tmpDir)) return [];
@@ -507,7 +573,7 @@ async function resolveAndDeduplicate(sessions: Session[]): Promise<Repo[]> {
       }
     }
 
-    const sessionCounts = { claude_code: 0, codex: 0, gemini: 0 };
+    const sessionCounts = { claude_code: 0, codex: 0, gemini: 0, opencode: 0 };
     for (const s of data.sessions) {
       sessionCounts[s.tool]++;
     }
@@ -523,8 +589,8 @@ async function resolveAndDeduplicate(sessions: Session[]): Promise<Repo[]> {
   // Sort by total sessions descending
   repos.sort(
     (a, b) =>
-      b.sessions.claude_code + b.sessions.codex + b.sessions.gemini -
-      (a.sessions.claude_code + a.sessions.codex + a.sessions.gemini)
+      b.sessions.claude_code + b.sessions.codex + b.sessions.gemini + b.sessions.opencode -
+      (a.sessions.claude_code + a.sessions.codex + a.sessions.gemini + a.sessions.opencode)
   );
 
   return repos;
@@ -541,12 +607,13 @@ async function main() {
   const ccSessions = scanClaudeCode(sinceDate);
   const codexSessions = scanCodex(sinceDate);
   const geminiSessions = scanGemini(sinceDate);
+  const opencodeSessions = scanOpenCode(sinceDate);
 
-  const allSessions = [...ccSessions, ...codexSessions, ...geminiSessions];
+  const allSessions = [...ccSessions, ...codexSessions, ...geminiSessions, ...opencodeSessions];
 
   // Summary to stderr
   console.error(
-    `Discovered: ${ccSessions.length} CC sessions, ${codexSessions.length} Codex sessions, ${geminiSessions.length} Gemini sessions`
+    `Discovered: ${ccSessions.length} CC sessions, ${codexSessions.length} Codex sessions, ${geminiSessions.length} Gemini sessions, ${opencodeSessions.length} OpenCode sessions`
   );
 
   // Deduplicate
@@ -558,6 +625,7 @@ async function main() {
   const ccRepos = new Set(repos.filter((r) => r.sessions.claude_code > 0).map((r) => r.remote)).size;
   const codexRepos = new Set(repos.filter((r) => r.sessions.codex > 0).map((r) => r.remote)).size;
   const geminiRepos = new Set(repos.filter((r) => r.sessions.gemini > 0).map((r) => r.remote)).size;
+  const opencodeRepos = new Set(repos.filter((r) => r.sessions.opencode > 0).map((r) => r.remote)).size;
 
   const result: DiscoveryResult = {
     window: since,
@@ -567,6 +635,7 @@ async function main() {
       claude_code: { total_sessions: ccSessions.length, repos: ccRepos },
       codex: { total_sessions: codexSessions.length, repos: codexRepos },
       gemini: { total_sessions: geminiSessions.length, repos: geminiRepos },
+      opencode: { total_sessions: opencodeSessions.length, repos: opencodeRepos },
     },
     total_sessions: allSessions.length,
     total_repos: repos.length,
@@ -577,15 +646,16 @@ async function main() {
   } else {
     // Summary format
     console.log(`Window: ${since} (since ${startDate})`);
-    console.log(`Sessions: ${allSessions.length} total (CC: ${ccSessions.length}, Codex: ${codexSessions.length}, Gemini: ${geminiSessions.length})`);
+    console.log(`Sessions: ${allSessions.length} total (CC: ${ccSessions.length}, Codex: ${codexSessions.length}, Gemini: ${geminiSessions.length}, OC: ${opencodeSessions.length})`);
     console.log(`Repos: ${repos.length} unique`);
     console.log("");
     for (const repo of repos) {
-      const total = repo.sessions.claude_code + repo.sessions.codex + repo.sessions.gemini;
+      const total = repo.sessions.claude_code + repo.sessions.codex + repo.sessions.gemini + repo.sessions.opencode;
       const tools = [];
       if (repo.sessions.claude_code > 0) tools.push(`CC:${repo.sessions.claude_code}`);
       if (repo.sessions.codex > 0) tools.push(`Codex:${repo.sessions.codex}`);
       if (repo.sessions.gemini > 0) tools.push(`Gemini:${repo.sessions.gemini}`);
+      if (repo.sessions.opencode > 0) tools.push(`OC:${repo.sessions.opencode}`);
       console.log(`  ${repo.name} (${total} sessions) — ${tools.join(", ")}`);
       console.log(`    Remote: ${repo.remote}`);
       console.log(`    Paths: ${repo.paths.join(", ")}`);

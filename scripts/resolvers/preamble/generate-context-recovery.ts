@@ -25,7 +25,14 @@ if [ -d "$_PROJ" ]; then
   [ -n "$_LATEST_CP" ] && echo "LATEST_CHECKPOINT: $_LATEST_CP"
   echo "--- END ARTIFACTS ---"
 fi
+# GBrain context recovery: search for project-relevant pages
+if command -v gbrain >/dev/null 2>&1 && [ -f "$HOME/.gbrain/config.json" ]; then
+  echo "--- GBRAIN CONTEXT ---"
+  gbrain search "\${SLUG:-unknown}" 2>/dev/null | head -8
+  gbrain search "session context checkpoint" 2>/dev/null | head -8
+  echo "--- END GBRAIN CONTEXT ---"
+fi
 \`\`\`
 
-If artifacts are listed, read the newest useful one. If \`LAST_SESSION\` or \`LATEST_CHECKPOINT\` appears, give a 2-sentence welcome back summary. If \`RECENT_PATTERN\` clearly implies a next skill, suggest it once.`;
+If artifacts are listed, read the newest useful one. If \`LAST_SESSION\` or \`LATEST_CHECKPOINT\` appears, give a 2-sentence welcome back summary. If GBRAIN CONTEXT pages are found, read the most relevant one to recover cross-session knowledge. If \`RECENT_PATTERN\` clearly implies a next skill, suggest it once. If no artifacts or gbrain pages are found, continue without context.`;
 }

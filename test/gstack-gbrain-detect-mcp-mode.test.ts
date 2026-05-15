@@ -1,10 +1,11 @@
 /**
  * gstack-gbrain-detect — gbrain_mcp_mode + gstack_artifacts_remote tests.
  *
- * The script has a 3-tier fallback chain for resolving gbrain_mcp_mode:
+ * The script has a 4-tier fallback chain for resolving gbrain_mcp_mode:
  *   1. `claude mcp get gbrain --json` (preferred — public CLI surface)
  *   2. `claude mcp list` text-grep (older claude versions without --json)
  *   3. `~/.claude.json` jq read (fallback if claude binary is absent)
+ *   4. opencode.json / opencode.jsonc (opencode host fallback)
  *
  * Each layer is tested by mocking the layer it depends on. Per codex
  * Finding #3 (defense-in-depth ordering): if Anthropic moves the
@@ -57,6 +58,7 @@ exit 1
 function runDetect(extraEnv: Record<string, string> = {}): { code: number; json: any; stderr: string } {
   const realPath = process.env.PATH ?? '';
   const r = spawnSync(DETECT_BIN, [], {
+    cwd: tmpHome,
     env: {
       // Put fakeBinDir first so our claude shim wins; include the project bin
       // for any sibling scripts and standard paths for jq/etc.

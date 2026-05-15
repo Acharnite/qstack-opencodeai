@@ -15,11 +15,13 @@ if [ -f "$REPO_ROOT/extension/manifest.json" ]; then
   EXT_DIR="$REPO_ROOT/extension"
 elif [ -f "$HOME/.claude/skills/gstack/extension/manifest.json" ]; then
   EXT_DIR="$HOME/.claude/skills/gstack/extension"
+elif [ -f "$HOME/.config/opencode/skills/gstack/extension/manifest.json" ]; then
+  EXT_DIR="$HOME/.config/opencode/skills/gstack/extension"
 fi
 
 if [ -z "$EXT_DIR" ]; then
   echo "Error: extension/ directory not found."
-  echo "Expected at: $REPO_ROOT/extension/ or ~/.claude/skills/gstack/extension/"
+  echo "Expected at: $REPO_ROOT/extension/, ~/.claude/skills/gstack/extension/, or ~/.config/opencode/skills/gstack/extension/"
   exit 1
 fi
 

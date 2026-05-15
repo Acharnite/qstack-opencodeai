@@ -64,14 +64,14 @@ _TEL_END=$(date +%s)
 _TEL_DUR=$(( _TEL_END - _TEL_START ))
 rm -f ~/.gstack/analytics/.pending-"$_SESSION_ID" 2>/dev/null || true
 # Session timeline: record skill completion (local-only, never sent anywhere)
-~/.claude/skills/gstack/bin/gstack-timeline-log '{"skill":"SKILL_NAME","event":"completed","branch":"'$(git branch --show-current 2>/dev/null || echo unknown)'","outcome":"OUTCOME","duration_s":"'"$_TEL_DUR"'","session":"'"$_SESSION_ID"'"}' 2>/dev/null || true
+${ctx.paths.binDir}/gstack-timeline-log '{"skill":"SKILL_NAME","event":"completed","branch":"'$(git branch --show-current 2>/dev/null || echo unknown)'","outcome":"OUTCOME","duration_s":"'"$_TEL_DUR"'","session":"'"$_SESSION_ID"'"}' 2>/dev/null || true
 # Local analytics (gated on telemetry setting)
 if [ "$_TEL" != "off" ]; then
 echo '{"skill":"SKILL_NAME","duration_s":"'"$_TEL_DUR"'","outcome":"OUTCOME","browse":"USED_BROWSE","session":"'"$_SESSION_ID"'","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' >> ~/.gstack/analytics/skill-usage.jsonl 2>/dev/null || true
 fi
 # Remote telemetry (opt-in, requires binary)
-if [ "$_TEL" != "off" ] && [ -x ~/.claude/skills/gstack/bin/gstack-telemetry-log ]; then
-  ~/.claude/skills/gstack/bin/gstack-telemetry-log \\
+if [ "$_TEL" != "off" ] && [ -x ${ctx.paths.binDir}/gstack-telemetry-log ]; then
+  ${ctx.paths.binDir}/gstack-telemetry-log \\
     --skill "SKILL_NAME" --duration "$_TEL_DUR" --outcome "OUTCOME" \\
     --used-browse "USED_BROWSE" --session-id "$_SESSION_ID" 2>/dev/null &
 fi
@@ -81,7 +81,7 @@ Replace \`SKILL_NAME\`, \`OUTCOME\`, and \`USED_BROWSE\` before running.
 
 ## Plan Status Footer
 
-In plan mode before ExitPlanMode: if the plan file lacks \`## GSTACK REVIEW REPORT\`, run \`~/.claude/skills/gstack/bin/gstack-review-read\` and append the standard runs/status/findings table. With \`NO_REVIEWS\` or empty, append a 5-row placeholder with verdict "NO REVIEWS YET — run \`/autoplan\`". If a richer report exists, skip.
+In plan mode before ExitPlanMode: if the plan file lacks \`## GSTACK REVIEW REPORT\`, run \`${ctx.paths.binDir}/gstack-review-read\` and append the standard runs/status/findings table. With \`NO_REVIEWS\` or empty, append a 5-row placeholder with verdict "NO REVIEWS YET — run \`/autoplan\`". If a richer report exists, skip.
 
 PLAN MODE EXCEPTION — always allowed (it's the plan file).`;
 }

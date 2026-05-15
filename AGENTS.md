@@ -6,8 +6,8 @@ designer, QA lead, release engineer, debugger, and more.
 
 ## Available skills
 
-Skills live in `.agents/skills/` (or `~/.claude/skills/gstack/` on Claude Code).
-Invoke them by name (e.g., `/office-hours`).
+Skills live in `.agents/skills/` (or `~/.config/opencode/skills/gstack/` on opencode,
+`~/.claude/skills/gstack/` on Claude Code). Invoke them by name (e.g., `/office-hours`).
 
 ### Plan-mode reviews
 
@@ -112,3 +112,71 @@ bun run skill:check      # health dashboard for all skills
 - Safety skills (careful, freeze, guard) use inline advisory prose — always confirm before destructive operations.
 - State paths resolve via `bin/gstack-paths` (sourced via `eval "$(...)"`). Honors `GSTACK_HOME`, `CLAUDE_PLUGIN_DATA`, `CLAUDE_PLANS_DIR`.
 - The `claude` CLI binary resolves via `browse/src/claude-bin.ts` (`Bun.which()` + `GSTACK_CLAUDE_BIN` override). Set `GSTACK_CLAUDE_BIN=wsl` plus `GSTACK_CLAUDE_BIN_ARGS='["claude"]'` to run Claude through WSL on Windows.
+
+## gbrain integration
+
+gbrain v0.34.4.0 is installed and configured with PGLite. It provides:
+
+- **Semantic search**: `gbrain search <query>` — keyword search over all indexed code/docs
+- **Cross-session memory**: `gbrain put <slug>` / `gbrain get <slug>` — persist and retrieve knowledge
+- **Hybrid query**: `gbrain query <question>` — RRF search with embeddings (requires OPENAI_API_KEY)
+- **Code awareness**: `gbrain reindex-code` / `gbrain sync --strategy code` for code files
+- **Symbol lookup**: `gbrain code-def <symbol>`, `gbrain code-refs <symbol>`, `gbrain code-callers <symbol>`
+
+The gstack repo (125 pages, 3214 chunks) is imported and embedded via a
+worktree-pinned code source (`.gbrain-source` at repo root — auto-routes
+all `gbrain` CLI calls from this worktree). Use `gbrain search` instead of
+Grep for semantic questions. Run `/sync-gbrain` to refresh. OpenAI API key
+is stored in `~/.gbrain/config.json`.
+
+gbrain binary is at `~/.bun/bin/gbrain` — add `~/.bun/bin` to PATH if not already set.
+
+### Session start — mandatory
+
+**At the start of EVERY session** (before answering the user's first question), search gbrain for relevant context:
+
+1. Search for the current project: `gbrain search "<basename of git root>" --limit 10`
+2. Search for recent session context: `gbrain search "session context checkpoint" --limit 10`
+3. Search for the user's identity/profile: `gbrain search "user profile kiffer" --limit 5`
+4. Read the most relevant page(s) found to understand past work, decisions, and state.
+
+This runs every session to provide continuity. If gbrain returns nothing, proceed without context.
+
+## Skill routing (synced from CLAUDE.md)
+
+When the user's request matches an available skill, invoke it via the Skill tool. When in doubt, invoke the skill.
+
+Key routing rules:
+- Product ideas/brainstorming → invoke /office-hours
+- Strategy/scope → invoke /plan-ceo-review
+- Architecture → invoke /plan-eng-review
+- Design system/plan review → invoke /design-consultation or /plan-design-review
+- Full review pipeline → invoke /autoplan
+- Bugs/errors → invoke /investigate
+- QA/testing site behavior → invoke /qa or /qa-only
+- Code review/diff check → invoke /review
+- Visual polish → invoke /design-review
+- Ship/deploy/PR → invoke /ship or /land-and-deploy
+- Save progress → invoke /context-save
+- Resume context → invoke /context-restore
+
+## Deploy Configuration (synced from CLAUDE.md)
+
+- Platform: GitHub-only — no server deploy
+- Production URL: none (CLI tool, installed via git/setup)
+- Deploy workflow: `.github/workflows/evals.yml` (CI)
+- Deploy status command: GitHub Actions — check CI status on PR
+- Merge method: squash
+- Project type: CLI
+- Post-deploy health check: none — CI passing is the gate
+
+## Preamble note — opencode host detection
+
+gstack's skill preambles now detect opencode alongside Claude Code for gbrain
+MCP configuration. The fallback chain is:
+1. `~/.claude.json` (Claude Code MCP config)
+2. Project-level `opencode.json` 
+3. Global `~/.config/opencode/opencode.jsonc`
+
+This was added in the opencode migration patch; all SKILL.md files have been
+regenerated to include this fallback.

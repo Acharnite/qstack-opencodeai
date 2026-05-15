@@ -57,29 +57,49 @@ if [ "$MODE" = "optional" ]; then
 This project uses [gstack](https://github.com/garrytan/gstack) for AI-assisted workflows.
 Install it for the best experience:
 
+Claude Code:
 ```bash
 git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
 cd ~/.claude/skills/gstack && ./setup --team
 ```
 
+OpenCode:
+```bash
+git clone --depth 1 https://github.com/garrytan/gstack.git ~/.config/opencode/skills/gstack
+cd ~/.config/opencode/skills/gstack && ./setup --team
+```
+
 Skills like /qa, /ship, /review, /investigate, and /browse become available after install.
-Use /browse for all web browsing. Use ~/.claude/skills/gstack/... for gstack file paths.'
+Use /browse for all web browsing. Use ~/.claude/skills/gstack/... or
+~/.config/opencode/skills/gstack/... for gstack file paths.'
 else
   SNIPPET='## gstack (REQUIRED — global install)
 
 **Before doing ANY work, verify gstack is installed:**
 
+Claude Code:
 ```bash
 test -d ~/.claude/skills/gstack/bin && echo "GSTACK_OK" || echo "GSTACK_MISSING"
+```
+
+OpenCode:
+```bash
+test -d ~/.config/opencode/skills/gstack/bin && echo "GSTACK_OK" || echo "GSTACK_MISSING"
 ```
 
 If GSTACK_MISSING: STOP. Do not proceed. Tell the user:
 
 > gstack is required for all AI-assisted work in this repo.
 > Install it:
+> Claude Code:
 > ```bash
 > git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
 > cd ~/.claude/skills/gstack && ./setup --team
+> ```
+> OpenCode:
+> ```bash
+> git clone --depth 1 https://github.com/garrytan/gstack.git ~/.config/opencode/skills/gstack
+> cd ~/.config/opencode/skills/gstack && ./setup --team
 > ```
 > Then restart your AI coding tool.
 
@@ -87,7 +107,7 @@ Do not skip skills, ignore gstack errors, or work around missing gstack.
 
 Using gstack skills: After install, skills like /qa, /ship, /review, /investigate,
 and /browse are available. Use /browse for all web browsing.
-Use ~/.claude/skills/gstack/... for gstack file paths (the global path).'
+Use ~/.claude/skills/gstack/... or ~/.config/opencode/skills/gstack/... for gstack file paths (the global path).'
 fi
 
 # Check if CLAUDE.md already has a gstack section
@@ -114,16 +134,21 @@ if [ "$MODE" = "required" ]; then
   cat > "$HOOKS_DIR/check-gstack.sh" << 'HOOK_EOF'
 #!/bin/bash
 # Block skill usage when gstack is not installed globally.
+# Checks both Claude Code and OpenCode install paths.
 
-if [ ! -d "$HOME/.claude/skills/gstack/bin" ]; then
+if [ ! -d "$HOME/.claude/skills/gstack/bin" ] && [ ! -d "$HOME/.config/opencode/skills/gstack/bin" ]; then
   cat >&2 <<'MSG'
 BLOCKED: gstack is not installed globally.
 
 gstack is required for AI-assisted work in this repo.
 
-Install it:
+Install it (Claude Code):
   git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
   cd ~/.claude/skills/gstack && ./setup --team
+
+Or (OpenCode):
+  git clone --depth 1 https://github.com/garrytan/gstack.git ~/.config/opencode/skills/gstack
+  cd ~/.config/opencode/skills/gstack && ./setup --team
 
 Then restart your AI coding tool.
 MSG
@@ -190,3 +215,7 @@ echo ""
 echo "Each developer then runs:"
 echo "  git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack"
 echo "  cd ~/.claude/skills/gstack && ./setup --team"
+echo ""
+echo "Or for OpenCode:"
+echo "  git clone --depth 1 https://github.com/garrytan/gstack.git ~/.config/opencode/skills/gstack"
+echo "  cd ~/.config/opencode/skills/gstack && ./setup --team"

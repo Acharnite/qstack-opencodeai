@@ -10,7 +10,7 @@
 #
 # Chains:
 #   GSTACK_STATE_ROOT: GSTACK_HOME -> CLAUDE_PLUGIN_DATA -> $HOME/.gstack -> .gstack
-#   PLAN_ROOT:         GSTACK_PLAN_DIR -> CLAUDE_PLANS_DIR -> $HOME/.claude/plans -> .claude/plans
+#   PLAN_ROOT:         GSTACK_PLAN_DIR -> CLAUDE_PLANS_DIR -> OPENCODE_PLANS_DIR -> $HOME/.claude/plans -> .claude/plans
 #   TMP_ROOT:          TMPDIR -> TMP -> .gstack/tmp (and mkdir -p, best-effort)
 #
 # Security: output values are not sanitized — callers may receive paths with
@@ -34,6 +34,8 @@ if [ -n "${GSTACK_PLAN_DIR:-}" ]; then
   _plan_root="$GSTACK_PLAN_DIR"
 elif [ -n "${CLAUDE_PLANS_DIR:-}" ]; then
   _plan_root="$CLAUDE_PLANS_DIR"
+elif [ -n "${OPENCODE_PLANS_DIR:-}" ]; then
+  _plan_root="$OPENCODE_PLANS_DIR"
 elif [ -n "${HOME:-}" ]; then
   _plan_root="$HOME/.claude/plans"
 else
