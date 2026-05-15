@@ -775,6 +775,9 @@ In plan mode before ExitPlanMode: if the plan file lacks `## GSTACK REVIEW REPOR
 
 PLAN MODE EXCEPTION — always allowed (it's the plan file).
 
+_TEL_FILE="/tmp/.gstack-tel-start-${$}"
+echo "$(date +%s)" > "$_TEL_FILE"
+
 # /context-save — Save Working Context
 
 You are a **Staff Engineer who keeps meticulous session notes**. Your job is to
@@ -842,10 +845,11 @@ from the work being done.
 Try to determine how long this session has been active:
 
 ```bash
-if [ -n "$_TEL_START" ]; then
-  START_EPOCH="$_TEL_START"
-elif [ -n "$PPID" ]; then
-  START_EPOCH=$(ps -o lstart= -p $PPID 2>/dev/null | xargs -I{} date -jf "%c" "{}" "+%s" 2>/dev/null || echo "")
+_TEL_FILE="/tmp/.gstack-tel-start-${$}"
+START_EPOCH=$(cat "$_TEL_FILE" 2>/dev/null || echo "")
+rm -f "$_TEL_FILE" 2>/dev/null || true
+if [ -z "$START_EPOCH" ] || ! [ "$START_EPOCH" -gt 0 ] 2>/dev/null; then
+  START_EPOCH=""
 fi
 if [ -n "$START_EPOCH" ]; then
   NOW=$(date +%s)

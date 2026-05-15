@@ -2,9 +2,10 @@
  * Auth resolution for OpenAI API access.
  *
  * Resolution order:
- * 1. ~/.gstack/openai.json → { "api_key": "sk-..." }
- * 2. OPENAI_API_KEY environment variable
- * 3. null (caller handles guided setup or fallback)
+ * 1. OPENAI_API_KEY environment variable (highest precedence)
+ * 2. ~/.gbrain/config.json → { "openai_api_key": "sk-..." } (or "api_key")
+ * 3. ~/.gstack/openai.json → { "api_key": "sk-..." }
+ * 4. null (caller handles guided setup or fallback)
  */
 
 import fs from "fs";
@@ -13,7 +14,26 @@ import path from "path";
 const CONFIG_PATH = path.join(process.env.HOME || "~", ".gstack", "openai.json");
 
 export function resolveApiKey(): string | null {
-  // 1. Check ~/.gstack/openai.json
+  // 1. Check environment variable (highest precedence)
+  if (process.env.OPENAI_API_KEY) {
+    return process.env.OPENAI_API_KEY;
+  }
+
+  // 2. Check ~/.gbrain/config.json (gbrain's config stores it as openai_api_key or api_key)
+  try {
+    const gbrainConfigPath = path.join(process.env.HOME || "~", ".gbrain", "config.json");
+    if (fs.existsSync(gbrainConfigPath)) {
+      const gbrainConfig = JSON.parse(fs.readFileSync(gbrainConfigPath, "utf-8"));
+      const key = gbrainConfig.openai_api_key || gbrainConfig.api_key;
+      if (key && typeof key === "string") {
+        return key;
+      }
+    }
+  } catch {
+    // Fall through
+  }
+
+  // 3. Check ~/.gstack/openai.json
   try {
     if (fs.existsSync(CONFIG_PATH)) {
       const content = fs.readFileSync(CONFIG_PATH, "utf-8");
@@ -23,12 +43,7 @@ export function resolveApiKey(): string | null {
       }
     }
   } catch {
-    // Fall through to env var
-  }
-
-  // 2. Check environment variable
-  if (process.env.OPENAI_API_KEY) {
-    return process.env.OPENAI_API_KEY;
+    // Fall through
   }
 
   return null;
@@ -53,8 +68,9 @@ export function requireApiKey(): string {
     console.error("No OpenAI API key found.");
     console.error("");
     console.error("Run: $D setup");
-    console.error("  or save to ~/.gstack/openai.json: { \"api_key\": \"sk-...\" }");
     console.error("  or set OPENAI_API_KEY environment variable");
+    console.error("  or save to ~/.gstack/openai.json: { \"api_key\": \"sk-...\" }");
+    console.error("  or add openai_api_key to ~/.gbrain/config.json");
     console.error("");
     console.error("Get a key at: https://platform.openai.com/api-keys");
     process.exit(1);

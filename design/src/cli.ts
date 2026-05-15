@@ -7,7 +7,7 @@
  *
  * Flow:
  *   1. Parse command + flags from argv
- *   2. Resolve auth (~/. gstack/openai.json → OPENAI_API_KEY → guided setup)
+ *   2. Resolve auth (OPENAI_API_KEY → ~/.gbrain/config.json → ~/.gstack/openai.json → guided setup)
  *   3. Execute command (API call → write PNG/HTML)
  *   4. Print result JSON to stdout
  */
