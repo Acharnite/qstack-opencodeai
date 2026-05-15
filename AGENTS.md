@@ -65,6 +65,12 @@ Skills live in `.agents/skills/` (or `~/.config/opencode/skills/gstack/` on open
 | `/setup-gbrain` | Set up gbrain for cross-machine session memory sync. |
 | `/sync-gbrain` | Keep gbrain current with this repo's code; refresh agent search guidance in CLAUDE.md. |
 
+### Plugin (opencode only)
+
+| Skill | What it does |
+|-------|-------------|
+| `gstack-plugin-opencode` | Opencode plugin — safety hooks (careful/freeze), team enforcement, auto-update. Install via `opencode.json`: `"plugin": ["./gstack-plugin-opencode"]` |
+
 ### Browser + agent integration
 
 | Skill | What it does |
