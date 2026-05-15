@@ -1,6 +1,61 @@
 # Changelog
 
-## [1.34.1.0] - 2026-05-13
+## [1.35.0.0] - 2026-05-15
+
+## **qstack-opencodeai fork: opencode host support with full hook parity.**
+
+## **All Claude Code hooks (PreToolUse, SessionStart, Skill enforcement) now have opencode equivalents via @opencode-ai/plugin.**
+
+The original gstack only supported Claude Code's hook system. This fork adds a new TypeScript plugin (`gstack-plugin-opencode/`) that implements all 4 hook types through opencode's plugin API — `permission.ask` for destructive command detection and freeze boundaries, `command.execute.before` for team enforcement, and `event` for auto-update. Detection, uninstall, session discovery, team-init, and vendoring checks all fall back from Claude Code to opencode config.
+
+### The numbers that matter
+
+Source: `bun test` — 529 tests across host-config, gbrain-detect-mcp-mode, team-mode, gen-skill-docs, and plugin unit tests. All green.
+
+| Component | Before (upstream) | After (fork) |
+|---|---|---|
+| Host support | Claude Code only | Claude Code + opencode + codex + factory + kiro + slate + cursor + openclaw + hermes + gbrain (10 hosts) |
+| Hook parity | 4 hooks (Claude Code only) | 4 hooks (Claude Code + opencode via plugin) |
+| gbrain MCP detection | `~/.claude.json` only (Tier 3) | 4 tiers — claude CLI + `~/.claude.json` + opencode.json + opencode.jsonc |
+| Session discovery | Claude Code, Codex, Gemini | + opencode (~/.config/opencode/projects/) |
+| Uninstall targets | Claude, Codex, Factory, Kiro | + opencode (global + project-local) |
+| Tests | existing | 27 new plugin tests (destructive patterns, path resolution, logging) |
+
+### What this means for builders
+
+Opencode users can now run /review, /qa, /investigate, /ship, and all other gstack skills with the same safety hooks (destructive command warnings, freeze boundaries, team enforcement) that previously required Claude Code. The plugin auto-updates gstack at session start just like the SessionStart hook does in Claude Code.
+
+### Itemized changes
+
+#### Added
+
+- **`gstack-plugin-opencode/`** — new opencode plugin: `permission.ask` with 7 destructive patterns + freeze boundary, `command.execute.before` for team enforcement, `event` hook for auto-update. 27 unit tests.
+- **`bin/gstack-gbrain-detect`** — Tier 4: opencode.json/opencode.jsonc fallback for gbrain MCP detection.
+- **`bin/gstack-global-discover.ts`** — `scanOpenCode()` for ~/.config/opencode/projects/ session discovery.
+- **`bin/gstack-uninstall`** — cleanup sections for opencode (global `~/.config/opencode/skills/` + project-local `.opencode/skills/`).
+- **`bin/gstack-extension`** — opencode extension path fallback (`~/.config/opencode/skills/gstack/extension/`).
+- **`bin/gstack-paths`** — `OPENCODE_PLANS_DIR` in plan root fallback chain.
+- **`bin/gstack-team-init`** — opencode plugin registration via jq in `opencode.json`; warning when no opencode.json found.
+- **`bin/gstack-settings-hook`** — `--opencode` flag (no-op — plugin handles auto-update).
+- **`setup`** — `--host opencode` skips SessionStart hook registration (plugin event hook handles it).
+- **`hosts/opencode.ts`** — `skipSkills: ['codex']` for consistency with all other non-Claude hosts.
+- **`test/fixtures/golden/opencode-ship-SKILL.md`** — golden file regression test for opencode host.
+- **`opencode.json.example`** — template config with relative paths.
+
+#### Changed
+
+- **All 47 SKILL.md files** — regenerated with opencode host detection preamble (opencode.json/opencode.jsonc fallback, vendoring check for `.opencode/skills/gstack`).
+- **`scripts/resolvers/preamble/generate-preamble-bash.ts`** — vendoring detection checks `.opencode/skills/gstack` first, then `.claude/skills/gstack`.
+- **`scripts/resolvers/preamble/generate-completion-status.ts`** — hardcoded `~/.claude/` paths replaced with `${ctx.paths.binDir}` for path-rewrite compatibility.
+- **`AGENTS.md`** — updated with opencode paths, gbrain v0.34.4.0, deploy config, skill routing, opencode host detection note.
+- **`CLAUDE.md`** — deploy configuration, gbrain search guidance, ~/.claude/ docs updated with opencode alternatives.
+- **`README.md`** — rewritten for fork context (WIP notice, opencode install, differences from upstream).
+- **`.gitignore`** — `opencode.json` added (machine-specific absolute paths).
+
+#### Fixed
+
+- **`test/gstack-gbrain-detect-mcp-mode.test.ts`** — run detect with `cwd: tmpHome` to prevent leaking real opencode.json config into test sandbox.
+- **`test/host-config.test.ts`** — generalized detect test to accept any tool on PATH instead of hardcoding "claude".
 
 ## **`gstack-update-check` resolves remote VERSION via a SHA-pinned URL.**
 ## **A semver-order guard makes sure the script never proposes a downgrade.**

@@ -125,7 +125,8 @@ function isSafeRm(cmd: string): boolean {
   const parts = cmd.split(/\s+/);
   for (const part of parts) {
     if (part === "rm" || part.startsWith("-")) continue;
-    const basename = part.replace(/.*\//, "");
+    const trimmed = part.replace(/\/+$/, "");
+    const basename = trimmed.replace(/.*\//, "");
     if (!SAFE_RM_TARGETS.includes(basename)) return false;
   }
   return true;

@@ -28,7 +28,8 @@ function extractDestructiveDetector(src: string): (cmd: string) => boolean {
       const parts = cmd.split(/\\s+/);
       for (const part of parts) {
         if (part === "rm" || part.startsWith("-")) continue;
-        const basename = part.replace(/.*\\//, "");
+        const trimmed = part.replace(/\\/+$/, "");
+        const basename = trimmed.replace(/.*\\//, "");
         if (!SAFE_RM_TARGETS.includes(basename)) return false;
       }
       return true;
@@ -138,6 +139,82 @@ describe("destructive command detection", () => {
   test("safe rm: node_modules path", () => {
     expect(isDestructive("rm -rf /home/user/project/node_modules")).toBe(false);
   });
+
+  test("safe rm: dist with path", () => {
+    expect(isDestructive("rm -rf ./dist/")).toBe(false);
+  });
+
+  test("safe rm: .turbo directory", () => {
+    expect(isDestructive("rm -rf .turbo")).toBe(false);
+  });
+
+  test("safe rm: coverage directory", () => {
+    expect(isDestructive("rm --recursive coverage/")).toBe(false);
+  });
+
+  test("safe rm: build directory", () => {
+    expect(isDestructive("rm -rf build/")).toBe(false);
+  });
+
+  test("unsafe rm: real directory", () => {
+    expect(isDestructive("rm -rf /etc")).toBe(true);
+  });
+
+  test("unsafe rm: home dir", () => {
+    expect(isDestructive("rm -r ~/Documents")).toBe(true);
+  });
+
+  test("unsafe rm: absolute system path", () => {
+    expect(isDestructive("rm -rf /usr/local/lib")).toBe(true);
+  });
+
+  test("unsafe rm: mixed safe and unsafe", () => {
+    expect(isDestructive("rm -rf node_modules /etc")).toBe(true);
+  });
+
+  test("case insensitive DROP TABLE", () => {
+    expect(isDestructive("drop table users")).toBe(true);
+  });
+
+  test("case insensitive DROP DATABASE", () => {
+    expect(isDestructive("Drop Database foo")).toBe(true);
+  });
+
+  test("TRUNCATE with schema", () => {
+    expect(isDestructive("truncate schema.table")).toBe(true);
+  });
+
+  test("git push with --force-with-lease also matches", () => {
+    expect(isDestructive("git push --force-with-lease origin main")).toBe(true);
+  });
+
+  test("git push with -f flag in middle", () => {
+    expect(isDestructive("git push -f origin main")).toBe(true);
+  });
+
+  test("kubectl delete namespace", () => {
+    expect(isDestructive("kubectl delete namespace staging")).toBe(true);
+  });
+
+  test("docker rm -f with container name", () => {
+    expect(isDestructive("docker rm -f nginx-prod")).toBe(true);
+  });
+
+  test("docker system prune --volumes", () => {
+    expect(isDestructive("docker system prune --volumes")).toBe(true);
+  });
+
+  test("empty command not destructive", () => {
+    expect(isDestructive("")).toBe(false);
+  });
+
+  test("whitespace only not destructive", () => {
+    expect(isDestructive("   ")).toBe(false);
+  });
+
+  test("comment not destructive", () => {
+    expect(isDestructive("# just a comment")).toBe(false);
+  });
 });
 
 // ── resolvePath tests ────────────────────────────────────────
@@ -174,6 +251,22 @@ describe("resolvePath", () => {
   test("trailing slash removed", () => {
     const r = resolvePath("/tmp/dir/");
     expect(r).toBe("/tmp/dir");
+  });
+
+  test("single dot resolves to cwd", () => {
+    const r = resolvePath(".");
+    expect(r).toBe(process.cwd());
+  });
+
+  test("symlink is resolved", () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "resolve-"));
+    const realDir = path.join(tmpDir, "real");
+    const linkDir = path.join(tmpDir, "link");
+    fs.mkdirSync(realDir);
+    fs.symlinkSync(realDir, linkDir);
+    const r = resolvePath(linkDir);
+    expect(r).toBe(realDir);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 });
 
