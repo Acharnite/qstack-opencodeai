@@ -56,6 +56,10 @@ Opencode users can now run /review, /qa, /investigate, /ship, and all other gsta
 
 - **`test/gstack-gbrain-detect-mcp-mode.test.ts`** — run detect with `cwd: tmpHome` to prevent leaking real opencode.json config into test sandbox.
 - **`test/host-config.test.ts`** — generalized detect test to accept any tool on PATH instead of hardcoding "claude".
+- **`bin/gstack-slug`** — empty SLUG fallback now hardens to `unknown` when basename contains only special characters. Cached slug values are re-sanitized on read to prevent stale unsafe characters from reaching eval output.
+- **`scripts/resolvers/gbrain.ts`** — deprecated `gbrain put_page`/`gbrain get_page` CLI verbs replaced with `gbrain put`/`gbrain get` across all skills. Entity stub pages use YAML frontmatter instead of `--content` flag. Compatible with gbrain v0.34.4.0.
+- **`context-save/SKILL.md` + template** — session duration now computed via epoch math (`date +%s` written to temp file) instead of platform-specific `ps lstart` + `date -jf` parsing. Works on Linux and macOS.
+- **`design/src/auth.ts`** — OpenAI API key resolution now checks env var first (highest precedence), then `~/.gbrain/config.json`, then `~/.gstack/openai.json`. Error text updated to mention all three locations.
 
 ## **`gstack-update-check` resolves remote VERSION via a SHA-pinned URL.**
 ## **A semver-order guard makes sure the script never proposes a downgrade.**
