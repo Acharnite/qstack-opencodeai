@@ -6,5 +6,8 @@
       "command": ["bun", "gbrain", "serve"],
       "enabled": true
     }
-  }
+  },
+  "plugin": [
+    "./gstack-plugin-opencode"
+  ]
 }
