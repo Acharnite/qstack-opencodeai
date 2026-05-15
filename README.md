@@ -131,6 +131,12 @@ Each skill feeds into the next. `/office-hours` writes a design doc that `/plan-
 | `/sync-gbrain` | **Keep Brain Current** | Re-index code into gbrain. |
 | `/gstack-upgrade` | **Self-Updater** | Upgrade to the latest version. |
 
+### Opencode plugin
+
+| Plugin | What it does |
+|--------|-------------|
+| `gstack-plugin-opencode` | Safety hooks (careful/freeze replacement), team enforcement, auto-update. Install via `opencode.json`: `"plugin": ["./gstack-plugin-opencode"]` |
+
 ### Power tools
 
 | Skill | What it does |
@@ -156,6 +162,7 @@ This fork is based on gstack [v1.34.1.0](https://github.com/garrytan/gstack/rele
 - `bin/gstack-paths` OPENCODE_PLANS_DIR support
 - All golden files regenerated for all 10 hosts
 - `opencode.json.example` template file
+- `gstack-plugin-opencode` — opencode hooks plugin (permission.ask, command.execute.before, event)
 
 ## Uninstall
 
