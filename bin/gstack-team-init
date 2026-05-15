@@ -220,6 +220,9 @@ if [ -f "$REPO_ROOT/opencode.json" ] || [ -f "$REPO_ROOT/.opencode/opencode.json
   else
     echo "  $OC_FILE — already has plugin reference, skipping"
   fi
+else
+  echo "  ! No opencode.json found — opencode users must add the plugin manually:"
+  echo '    "plugin": ["./gstack-plugin-opencode"]'
 fi
 
 # ── Summary ────────────────────────────────────────────────────

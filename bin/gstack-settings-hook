@@ -1,9 +1,17 @@
 #!/usr/bin/env bash
-# gstack-settings-hook — add/remove SessionStart hooks in Claude Code settings.json
+# gstack-settings-hook — add/remove SessionStart hooks in settings.json
+#
+# For Claude Code: reads/writes $HOME/.claude/settings.json to register
+# gstack-session-update as a SessionStart hook.
+#
+# For opencode: auto-update is handled by the plugin's event hook, so
+# this script is a no-op when --opencode is passed.
 #
 # Usage:
-#   gstack-settings-hook add <hook-command>     # add SessionStart hook
-#   gstack-settings-hook remove <hook-command>  # remove SessionStart hook
+#   gstack-settings-hook add <hook-command>              # Claude Code
+#   gstack-settings-hook add <hook-command> --opencode   # opencode (no-op)
+#   gstack-settings-hook remove <hook-command>            # Claude Code
+#   gstack-settings-hook remove <hook-command> --opencode # opencode (no-op)
 #
 # Requires: bun (already a gstack hard dependency)
 # Writes atomically: .tmp + rename to prevent corruption on crash/disk-full.
@@ -12,7 +20,13 @@ set -euo pipefail
 
 ACTION="${1:-}"
 HOOK_CMD="${2:-}"
+HOST_FLAG="${3:-claude}"
 SETTINGS_FILE="${GSTACK_SETTINGS_FILE:-$HOME/.claude/settings.json}"
+
+# Opencode uses the plugin's event hook — no settings.json needed
+if [ "$HOST_FLAG" = "--opencode" ]; then
+  exit 0
+fi
 
 if [ -z "$ACTION" ] || [ -z "$HOOK_CMD" ]; then
   echo "Usage: gstack-settings-hook {add|remove} <hook-command>" >&2
