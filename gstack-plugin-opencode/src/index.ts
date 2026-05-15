@@ -82,6 +82,9 @@ function resolvePath(filePath: string): string {
     resolved = `${process.cwd()}/${resolved}`;
   }
   resolved = resolved.replace(/\/+/g, "/").replace(/\/$/, "");
+  try {
+    resolved = fs.realpathSync(resolved);
+  } catch {}
   return resolved;
 }
 
@@ -165,7 +168,9 @@ async function runAutoUpdate(ctx: { $: any }): Promise<void> {
 
 function logHook(skill: string, pattern: string): void {
   try {
-    const logDir = `${process.env.HOME}/.gstack/analytics`;
+    const home = process.env.HOME;
+    if (!home) return;
+    const logDir = `${home}/.gstack/analytics`;
     fs.mkdirSync(logDir, { recursive: true });
     const entry = JSON.stringify({
       event: "hook_fire", skill, pattern,
