@@ -201,6 +201,27 @@ HOOK_EOF
   fi
 fi
 
+# ── Opencode plugin registration (all modes) ────────────────────
+
+if [ -f "$REPO_ROOT/opencode.json" ] || [ -f "$REPO_ROOT/.opencode/opencode.json" ]; then
+  OC_FILE="$REPO_ROOT/opencode.json"
+  [ -f "$REPO_ROOT/.opencode/opencode.json" ] && OC_FILE="$REPO_ROOT/.opencode/opencode.json"
+
+  if ! grep -q "gstack-plugin-opencode" "$OC_FILE" 2>/dev/null; then
+    if command -v jq >/dev/null 2>&1; then
+      TMP_OC="${OC_FILE}.tmp"
+      jq '.plugin = (.plugin // []) + ["./gstack-plugin-opencode"] | .plugin |= unique' "$OC_FILE" > "$TMP_OC" 2>/dev/null && mv "$TMP_OC" "$OC_FILE"
+      GENERATED+=("$OC_FILE")
+      echo "  + $OC_FILE — added gstack plugin reference"
+    else
+      echo "  ! jq not found — manually add to $OC_FILE:"
+      echo '    "plugin": ["./gstack-plugin-opencode"]'
+    fi
+  else
+    echo "  $OC_FILE — already has plugin reference, skipping"
+  fi
+fi
+
 # ── Summary ────────────────────────────────────────────────────
 
 echo ""
