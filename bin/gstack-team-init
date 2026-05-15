@@ -66,7 +66,7 @@ cd ~/.claude/skills/gstack && ./setup --team
 OpenCode:
 ```bash
 git clone --depth 1 https://github.com/garrytan/gstack.git ~/.config/opencode/skills/gstack
-cd ~/.config/opencode/skills/gstack && ./setup --team
+cd ~/.config/opencode/skills/gstack && ./setup --host opencode --team
 ```
 
 Skills like /qa, /ship, /review, /investigate, and /browse become available after install.
@@ -99,7 +99,7 @@ If GSTACK_MISSING: STOP. Do not proceed. Tell the user:
 > OpenCode:
 > ```bash
 > git clone --depth 1 https://github.com/garrytan/gstack.git ~/.config/opencode/skills/gstack
-> cd ~/.config/opencode/skills/gstack && ./setup --team
+> cd ~/.config/opencode/skills/gstack && ./setup --host opencode --team
 > ```
 > Then restart your AI coding tool.
 
@@ -203,6 +203,9 @@ fi
 
 # ── Opencode plugin registration (all modes) ────────────────────
 
+GSTACK_SOURCE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+PLUGIN_PATH="$GSTACK_SOURCE_DIR/gstack-plugin-opencode"
+
 if [ -f "$REPO_ROOT/opencode.json" ] || [ -f "$REPO_ROOT/.opencode/opencode.json" ]; then
   OC_FILE="$REPO_ROOT/opencode.json"
   [ -f "$REPO_ROOT/.opencode/opencode.json" ] && OC_FILE="$REPO_ROOT/.opencode/opencode.json"
@@ -210,19 +213,19 @@ if [ -f "$REPO_ROOT/opencode.json" ] || [ -f "$REPO_ROOT/.opencode/opencode.json
   if ! grep -q "gstack-plugin-opencode" "$OC_FILE" 2>/dev/null; then
     if command -v jq >/dev/null 2>&1; then
       TMP_OC="${OC_FILE}.tmp"
-      jq '.plugin = (.plugin // []) + ["./gstack-plugin-opencode"] | .plugin |= unique' "$OC_FILE" > "$TMP_OC" 2>/dev/null && mv "$TMP_OC" "$OC_FILE"
+      jq --arg p "$PLUGIN_PATH" '.plugin = (.plugin // []) + [$p] | .plugin |= unique' "$OC_FILE" > "$TMP_OC" 2>/dev/null && mv "$TMP_OC" "$OC_FILE"
       GENERATED+=("$OC_FILE")
-      echo "  + $OC_FILE — added gstack plugin reference"
+      echo "  + $OC_FILE — added gstack plugin reference ($PLUGIN_PATH)"
     else
       echo "  ! jq not found — manually add to $OC_FILE:"
-      echo '    "plugin": ["./gstack-plugin-opencode"]'
+      echo "    \"plugin\": [\"$PLUGIN_PATH\"]"
     fi
   else
     echo "  $OC_FILE — already has plugin reference, skipping"
   fi
 else
   echo "  ! No opencode.json found — opencode users must add the plugin manually:"
-  echo '    "plugin": ["./gstack-plugin-opencode"]'
+  echo "    \"plugin\": [\"$PLUGIN_PATH\"]"
 fi
 
 # ── Summary ────────────────────────────────────────────────────
@@ -242,4 +245,4 @@ echo "  cd ~/.claude/skills/gstack && ./setup --team"
 echo ""
 echo "Or for OpenCode:"
 echo "  git clone --depth 1 https://github.com/garrytan/gstack.git ~/.config/opencode/skills/gstack"
-echo "  cd ~/.config/opencode/skills/gstack && ./setup --team"
+echo "  cd ~/.config/opencode/skills/gstack && ./setup --host opencode --team"

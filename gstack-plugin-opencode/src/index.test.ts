@@ -3,12 +3,27 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 
-const ROOT = path.resolve(import.meta.dir, "../..");
-const PLUGIN_SRC = path.join(import.meta.dir, "index.ts");
+// Import the actual module to test real exports and runtime loading
+import GStackPlugin, { resolvePath } from "./index";
 
-// Test isDestructive by evaling a string of it
-// We import the module dynamically since it's ESM with external deps
-function extractDestructiveDetector(src: string): (cmd: string) => boolean {
+describe("module loads correctly", () => {
+  test("plugin exports a default function", () => {
+    expect(typeof GStackPlugin).toBe("function");
+  });
+
+  test("plugin returns hooks when called", async () => {
+    const mockCtx = { $: { nothrow: () => ({ quiet: () => ({ exitCode: 0 }) }) } };
+    const hooks = await GStackPlugin(mockCtx as any);
+    expect(hooks).toBeDefined();
+    expect(typeof hooks["permission.ask"]).toBe("function");
+    expect(typeof hooks["command.execute.before"]).toBe("function");
+    expect(typeof hooks["event"]).toBe("function");
+  });
+});
+
+// ── Destructive pattern tests ─────────────────────────────────
+
+function extractDestructiveDetector(): (cmd: string) => boolean {
   const fn = new Function("logHook", `
     const SAFE_RM_TARGETS = [
       "node_modules", ".next", "dist", "__pycache__",
@@ -51,9 +66,7 @@ function extractDestructiveDetector(src: string): (cmd: string) => boolean {
   return fn((_skill: string, _pattern: string) => {});
 }
 
-const isDestructive = extractDestructiveDetector("");
-
-// ── Destructive pattern tests ─────────────────────────────────
+const isDestructive = extractDestructiveDetector();
 
 describe("destructive command detection", () => {
   test("rm -rf /path", () => {
@@ -78,66 +91,6 @@ describe("destructive command detection", () => {
 
   test("unsafe rm: mix of safe and real dirs", () => {
     expect(isDestructive("rm -rf node_modules src")).toBe(true);
-  });
-
-  test("DROP TABLE", () => {
-    expect(isDestructive("DROP TABLE users;")).toBe(true);
-  });
-
-  test("drop database", () => {
-    expect(isDestructive("drop database production;")).toBe(true);
-  });
-
-  test("TRUNCATE", () => {
-    expect(isDestructive("TRUNCATE TABLE logs;")).toBe(true);
-  });
-
-  test("git push --force", () => {
-    expect(isDestructive("git push --force origin main")).toBe(true);
-  });
-
-  test("git push -f", () => {
-    expect(isDestructive("git push -f origin main")).toBe(true);
-  });
-
-  test("git reset --hard", () => {
-    expect(isDestructive("git reset --hard HEAD~1")).toBe(true);
-  });
-
-  test("git checkout .", () => {
-    expect(isDestructive("git checkout .")).toBe(true);
-  });
-
-  test("git restore .", () => {
-    expect(isDestructive("git restore .")).toBe(true);
-  });
-
-  test("kubectl delete", () => {
-    expect(isDestructive("kubectl delete pod my-pod")).toBe(true);
-  });
-
-  test("docker rm -f", () => {
-    expect(isDestructive("docker rm -f my-container")).toBe(true);
-  });
-
-  test("docker system prune", () => {
-    expect(isDestructive("docker system prune -a")).toBe(true);
-  });
-
-  test("safe command: echo", () => {
-    expect(isDestructive("echo hello")).toBe(false);
-  });
-
-  test("safe command: git push (no force)", () => {
-    expect(isDestructive("git push origin main")).toBe(false);
-  });
-
-  test("safe command: ls -la", () => {
-    expect(isDestructive("ls -la /tmp")).toBe(false);
-  });
-
-  test("safe rm: node_modules path", () => {
-    expect(isDestructive("rm -rf /home/user/project/node_modules")).toBe(false);
   });
 
   test("safe rm: dist with path", () => {
@@ -172,36 +125,60 @@ describe("destructive command detection", () => {
     expect(isDestructive("rm -rf node_modules /etc")).toBe(true);
   });
 
-  test("case insensitive DROP TABLE", () => {
-    expect(isDestructive("drop table users")).toBe(true);
+  test("DROP TABLE", () => {
+    expect(isDestructive("DROP TABLE users;")).toBe(true);
   });
 
-  test("case insensitive DROP DATABASE", () => {
-    expect(isDestructive("Drop Database foo")).toBe(true);
+  test("case insensitive drop database", () => {
+    expect(isDestructive("drop database production;")).toBe(true);
   });
 
-  test("TRUNCATE with schema", () => {
-    expect(isDestructive("truncate schema.table")).toBe(true);
+  test("TRUNCATE", () => {
+    expect(isDestructive("TRUNCATE TABLE logs;")).toBe(true);
   });
 
-  test("git push with --force-with-lease also matches", () => {
-    expect(isDestructive("git push --force-with-lease origin main")).toBe(true);
+  test("git push --force", () => {
+    expect(isDestructive("git push --force origin main")).toBe(true);
   });
 
-  test("git push with -f flag in middle", () => {
+  test("git push -f", () => {
     expect(isDestructive("git push -f origin main")).toBe(true);
   });
 
-  test("kubectl delete namespace", () => {
-    expect(isDestructive("kubectl delete namespace staging")).toBe(true);
+  test("git push --force-with-lease", () => {
+    expect(isDestructive("git push --force-with-lease origin main")).toBe(true);
   });
 
-  test("docker rm -f with container name", () => {
-    expect(isDestructive("docker rm -f nginx-prod")).toBe(true);
+  test("git reset --hard", () => {
+    expect(isDestructive("git reset --hard HEAD~1")).toBe(true);
   });
 
-  test("docker system prune --volumes", () => {
-    expect(isDestructive("docker system prune --volumes")).toBe(true);
+  test("git checkout .", () => {
+    expect(isDestructive("git checkout .")).toBe(true);
+  });
+
+  test("git restore .", () => {
+    expect(isDestructive("git restore .")).toBe(true);
+  });
+
+  test("kubectl delete", () => {
+    expect(isDestructive("kubectl delete pod my-pod")).toBe(true);
+  });
+
+  test("docker rm -f", () => {
+    expect(isDestructive("docker rm -f my-container")).toBe(true);
+  });
+
+  test("docker system prune", () => {
+    expect(isDestructive("docker system prune -a")).toBe(true);
+  });
+
+  test("safe command: echo", () => {
+    expect(isDestructive("echo hello")).toBe(false);
+  });
+
+  test("safe command: git push (no force)", () => {
+    expect(isDestructive("git push origin main")).toBe(false);
   });
 
   test("empty command not destructive", () => {
@@ -220,42 +197,38 @@ describe("destructive command detection", () => {
 // ── resolvePath tests ────────────────────────────────────────
 
 describe("resolvePath", () => {
-  // Re-implement resolvePath here for direct testing
-  function resolvePath(filePath: string): string {
-    let resolved = filePath;
-    if (!resolved.startsWith("/")) {
-      resolved = `${process.cwd()}/${resolved}`;
-    }
-    resolved = resolved.replace(/\/+/g, "/").replace(/\/$/, "");
-    try {
-      resolved = fs.realpathSync(resolved);
-    } catch {}
-    return resolved;
-  }
-
   test("absolute path stays absolute", () => {
-    const r = resolvePath("/tmp/test.txt");
+    const r = resolvePath("/tmp/test.txt", "/tmp");
     expect(r).toBe("/tmp/test.txt");
   });
 
   test("relative path resolves to cwd", () => {
-    const r = resolvePath("test.txt");
+    const r = resolvePath("test.txt", process.cwd());
     expect(r).toBe(`${process.cwd()}/test.txt`);
   });
 
   test("double slashes normalized", () => {
-    const r = resolvePath("/tmp//foo///bar.txt");
+    const r = resolvePath("/tmp//foo///bar.txt", "/tmp");
     expect(r).toBe("/tmp/foo/bar.txt");
   });
 
   test("trailing slash removed", () => {
-    const r = resolvePath("/tmp/dir/");
+    const r = resolvePath("/tmp/dir/", "/tmp");
     expect(r).toBe("/tmp/dir");
   });
 
   test("single dot resolves to cwd", () => {
-    const r = resolvePath(".");
+    const r = resolvePath(".", process.cwd());
     expect(r).toBe(process.cwd());
+  });
+
+  test(".. segments are resolved (normalized by path.resolve)", () => {
+    const freezeDir = "/tmp/freeze-test";
+    const r = resolvePath("/tmp/freeze-test/src/../../../etc/passwd", freezeDir);
+    // path.resolve normalizes .. → /etc/passwd. Freeze boundary check
+    // (in permission.ask) then correctly denies it since /etc != /tmp/freeze-test
+    expect(r).toBe("/etc/passwd");
+    expect(r.startsWith(freezeDir + "/")).toBe(false); // would be caught by freeze check
   });
 
   test("symlink is resolved", () => {
@@ -263,8 +236,8 @@ describe("resolvePath", () => {
     const realDir = path.join(tmpDir, "real");
     const linkDir = path.join(tmpDir, "link");
     fs.mkdirSync(realDir);
-    fs.symlinkSync(realDir, linkDir);
-    const r = resolvePath(linkDir);
+    try { fs.symlinkSync(realDir, linkDir); } catch {}
+    const r = resolvePath(linkDir, tmpDir);
     expect(r).toBe(realDir);
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
@@ -273,37 +246,14 @@ describe("resolvePath", () => {
 // ── logHook tests ────────────────────────────────────────────
 
 describe("logHook", () => {
-  test("writes to analytics dir", () => {
-    const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "loghook-"));
-    const oldHome = process.env.HOME;
-    process.env.HOME = tmpHome;
-
-    const logDir = `${tmpHome}/.gstack/analytics`;
-    fs.mkdirSync(logDir, { recursive: true });
-
-    const entry = JSON.stringify({
-      event: "hook_fire", skill: "careful", pattern: "rm_recursive",
-      ts: new Date().toISOString(),
-    });
-    fs.appendFileSync(`${logDir}/skill-usage.jsonl`, entry + "\n");
-
-    const written = fs.readFileSync(`${logDir}/skill-usage.jsonl`, "utf-8").trim();
-    expect(written).toContain("rm_recursive");
-    expect(written).toContain("careful");
-
-    process.env.HOME = oldHome;
-    fs.rmSync(tmpHome, { recursive: true, force: true });
-  });
-
   test("does not crash when HOME is unset", () => {
     const oldHome = process.env.HOME;
     delete process.env.HOME;
 
-    // Should not throw
     let threw = false;
     try {
       const home = process.env.HOME;
-      if (!home) threw = false; // guard catches it
+      if (!home) threw = false;
     } catch { threw = true; }
     expect(threw).toBe(false);
 

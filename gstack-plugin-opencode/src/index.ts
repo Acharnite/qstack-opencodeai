@@ -1,5 +1,6 @@
 import type { Plugin, Hooks } from "@opencode-ai/plugin";
 import * as fs from "fs";
+import * as path from "path";
 
 const pluginDir = new URL("..", import.meta.url).pathname;
 
@@ -19,8 +20,9 @@ export const GStackOpencodePlugin: Plugin = async (ctx) => {
       // --- Freeze boundary check ---
       const freezeDir = getFreezeDir();
       if (freezeDir && pi.filePath) {
-        const resolved = resolvePath(pi.filePath);
-        if (!resolved.startsWith(freezeDir + "/") && resolved !== freezeDir) {
+        const resolved = resolvePath(pi.filePath, freezeDir);
+        const normalizedFreeze = resolvePath(freezeDir, freezeDir);
+        if (!resolved.startsWith(normalizedFreeze + "/") && resolved !== normalizedFreeze) {
           logHook("freeze", "boundary_deny");
           output.status = "deny";
           return;
@@ -36,10 +38,23 @@ export const GStackOpencodePlugin: Plugin = async (ctx) => {
         }
       }
 
+      // Safe command — allow silently (don't prompt)
+      if (!pi.filePath && pi.tool !== "bash" && !pi.command) {
+        output.status = "allow";
+        return;
+      }
       output.status = "ask";
     },
 
-    "command.execute.before": async (_input, output) => {
+    "command.execute.before": async (input, output) => {
+      // Only check gstack skills, not other commands
+      const cmd = (input as any).command || "";
+      if (!cmd.startsWith("gstack-") && cmd !== "office-hours" && cmd !== "plan-ceo-review" &&
+          cmd !== "plan-eng-review" && cmd !== "review" && cmd !== "qa" && cmd !== "ship" &&
+          cmd !== "investigate" && cmd !== "browse" && cmd !== "codex" && cmd !== "cso" &&
+          cmd !== "autoplan" && cmd !== "context-save" && cmd !== "context-restore") {
+        return;
+      }
       const gstackInstalled = await checkGstackInstalled(ctx);
       if (!gstackInstalled) {
         output.parts = [{
@@ -49,8 +64,13 @@ export const GStackOpencodePlugin: Plugin = async (ctx) => {
       }
     },
 
-    event: async (_input) => {
-      await runAutoUpdate(ctx);
+    event: async (input) => {
+      // Only run auto-update on session-start events, not every event
+      const evt = input as any;
+      const eventType = evt?.event?.type || evt?.type || "";
+      if (eventType === "session_start" || eventType === "started" || eventType.includes("session")) {
+        await runAutoUpdate(ctx);
+      }
     },
   };
 
@@ -60,11 +80,13 @@ export const GStackOpencodePlugin: Plugin = async (ctx) => {
 // ── Freeze boundary ───────────────────────────────────────────
 
 function getFreezeDir(): string | null {
-  const paths = [
-    process.env.CLAUDE_PLUGIN_DATA,
-    `${process.env.HOME}/.gstack`,
-    `${process.env.HOME}/.local/state/opencode`,
-  ];
+  const stateRoot = process.env.GSTACK_HOME || process.env.GSTACK_STATE_DIR || process.env.CLAUDE_PLUGIN_DATA;
+  const paths = stateRoot
+    ? [stateRoot]
+    : [
+        `${process.env.HOME}/.gstack`,
+        `${process.env.HOME}/.local/state/opencode`,
+      ];
   for (const base of paths) {
     if (!base) continue;
     const freezeFile = `${base}/freeze-dir.txt`;
@@ -76,15 +98,31 @@ function getFreezeDir(): string | null {
   return null;
 }
 
-function resolvePath(filePath: string): string {
+export function resolvePath(filePath: string, freezeDir: string): string {
+  // Resolve .. segments via path.resolve + realpathSync on existing parents
   let resolved = filePath;
-  if (!resolved.startsWith("/")) {
-    resolved = `${process.cwd()}/${resolved}`;
+  if (!path.isAbsolute(resolved)) {
+    resolved = path.resolve(process.cwd(), resolved);
   }
-  resolved = resolved.replace(/\/+/g, "/").replace(/\/$/, "");
+  resolved = path.resolve(resolved); // normalizes .. segments
+  // realpathSync existing ancestors to handle symlinks in path prefix
   try {
     resolved = fs.realpathSync(resolved);
-  } catch {}
+  } catch {
+    // File may not exist yet — resolve nearest existing ancestor
+    let dir = path.dirname(resolved);
+    let base = path.basename(resolved);
+    while (dir !== path.dirname(dir)) {
+      try {
+        const realDir = fs.realpathSync(dir);
+        resolved = path.join(realDir, base);
+        break;
+      } catch {
+        base = path.join(path.basename(dir), base);
+        dir = path.dirname(dir);
+      }
+    }
+  }
   return resolved;
 }
 
@@ -149,8 +187,6 @@ async function checkGstackInstalled(ctx: { $: any }): Promise<boolean> {
 // ── Auto-update ───────────────────────────────────────────────
 
 async function runAutoUpdate(ctx: { $: any }): Promise<void> {
-  // Resolve gstack bin dir: if installed beside gstack, use sibling path;
-  // otherwise try common install locations.
   const gstackBins = [
     `${pluginDir}/../bin/gstack-session-update`,
     `${process.env.HOME}/.config/opencode/skills/gstack/bin/gstack-session-update`,
@@ -159,7 +195,14 @@ async function runAutoUpdate(ctx: { $: any }): Promise<void> {
   for (const p of gstackBins) {
     const result = await ctx.$.nothrow()`test -f "${p}"`.quiet();
     if (result.exitCode === 0) {
-      ctx.$.nothrow()`"${p}"`.quiet();
+      // Detect install type from path and set GSTACK_DIR accordingly
+      let gstackDir: string;
+      if (p.includes(".config/opencode/")) {
+        gstackDir = `${process.env.HOME}/.config/opencode/skills/gstack`;
+      } else {
+        gstackDir = `${process.env.HOME}/.claude/skills/gstack`;
+      }
+      ctx.$.nothrow()`GSTACK_DIR="${gstackDir}" "${p}"`.quiet();
       return;
     }
   }
