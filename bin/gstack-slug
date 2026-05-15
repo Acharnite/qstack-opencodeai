@@ -15,7 +15,7 @@ CACHE_FILE="${CACHE_DIR}/${CACHE_KEY}"
 
 # 1. Try cached slug first (guarantees consistency across sessions)
 if [[ -f "$CACHE_FILE" ]]; then
-  SLUG=$(cat "$CACHE_FILE")
+  SLUG=$(cat "$CACHE_FILE" | tr -cd 'a-zA-Z0-9._-')
 fi
 
 # 2. If no cache, compute from git remote (separated from pipeline to avoid
@@ -29,7 +29,8 @@ if [[ -z "${SLUG:-}" ]]; then
 fi
 
 # 3. Fallback to basename only when there's truly no git remote configured
-SLUG="${SLUG:-$(basename "$PWD" | tr -cd 'a-zA-Z0-9._-')}"
+SANITIZED=$(basename "$PWD" | tr -cd 'a-zA-Z0-9._-')
+SLUG="${SLUG:-${SANITIZED:-unknown}}"
 
 # 4. Cache the slug for future sessions (atomic write, fail silently)
 if [[ -n "$SLUG" ]]; then
