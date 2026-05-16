@@ -96,12 +96,25 @@ fi
 
 # --- gbrain_mcp_mode: local-stdio | remote-http | none ---
 # Defense-in-depth fallback chain (intentional ordering, do not reorder):
-#   1. `claude mcp get gbrain --json` — public CLI surface, structured output
-#   2. `claude mcp list` text-grep    — older claude versions without --json
-#   3. `~/.claude.json` jq read       — last resort if `claude` isn't on PATH
-#   4. opencode.json / opencode.jsonc — opencode host fallback
+#   1. opencode.json / opencode.jsonc — opencode host config (primary)
+#   2. `claude mcp get gbrain --json` — public CLI surface, structured output
+#   3. `claude mcp list` text-grep    — older claude versions without --json
+#   4. `~/.claude.json` jq read       — last resort if `claude` isn't on PATH
 gbrain_mcp_mode="none"
-if command -v claude >/dev/null 2>&1; then
+
+# Tier 1: opencode config (primary host)
+if command -v jq >/dev/null 2>&1; then
+  for _OC in "$PWD/opencode.json" "$HOME/.config/opencode/opencode.jsonc"; do
+    [ -f "$_OC" ] || continue
+    _GBRAIN_MCP_TYPE=$(jq -r '.mcp.gbrain.type // empty' "$_OC" 2>/dev/null)
+    case "$_GBRAIN_MCP_TYPE" in
+      local) gbrain_mcp_mode="local-stdio"; break ;;
+      remote|http) gbrain_mcp_mode="remote-http"; break ;;
+    esac
+  done
+fi
+
+if command -v claude >/dev/null 2>&1 && [ "$gbrain_mcp_mode" = "none" ]; then
   # Tier 1: claude mcp get --json
   if mcp_get_json=$(claude mcp get gbrain --json 2>/dev/null); then
     if echo "$mcp_get_json" | jq -e '.' >/dev/null 2>&1; then
@@ -134,7 +147,7 @@ if command -v claude >/dev/null 2>&1; then
     fi
   fi
 fi
-# Tier 3: ~/.claude.json jq read (only if claude binary or earlier tiers failed)
+# Tier 3: ~/.claude.json jq read (only if earlier tiers failed)
 if [ "$gbrain_mcp_mode" = "none" ]; then
   if [ -f "$HOME/.claude.json" ]; then
     # Look for a gbrain MCP server entry. Type field disambiguates http vs stdio.
@@ -151,18 +164,6 @@ if [ "$gbrain_mcp_mode" = "none" ]; then
         ;;
     esac
   fi
-fi
-# Tier 4: opencode config fallback — project-level opencode.json then global opencode.jsonc
-if [ "$gbrain_mcp_mode" = "none" ]; then
-  _REPO_TOP=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
-  for _OC in "${_REPO_TOP:-$(pwd)}/opencode.json" "$HOME/.config/opencode/opencode.jsonc"; do
-    [ -f "$_OC" ] || continue
-    mtype=$(jq -r '.mcp.gbrain.type // empty' "$_OC" 2>/dev/null)
-    case "$mtype" in
-      local)        gbrain_mcp_mode="local-stdio"; break ;;
-      remote|http)  gbrain_mcp_mode="remote-http"; break ;;
-    esac
-  done
 fi
 
 # --- artifacts remote URL (post-rename) with brain-* fallback during the

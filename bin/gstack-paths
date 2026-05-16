@@ -37,9 +37,9 @@ elif [ -n "${CLAUDE_PLANS_DIR:-}" ]; then
 elif [ -n "${OPENCODE_PLANS_DIR:-}" ]; then
   _plan_root="$OPENCODE_PLANS_DIR"
 elif [ -n "${HOME:-}" ]; then
-  _plan_root="$HOME/.claude/plans"
+  _plan_root="$HOME/.config/opencode/plans"
 else
-  _plan_root=".claude/plans"
+  _plan_root=".opencode/plans"
 fi
 
 # Tmp root: where ephemeral files (codex stderr captures, etc.) live.

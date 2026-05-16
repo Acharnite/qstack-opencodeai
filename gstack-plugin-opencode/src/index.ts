@@ -80,7 +80,7 @@ export const GStackOpencodePlugin: Plugin = async (ctx) => {
 // ── Freeze boundary ───────────────────────────────────────────
 
 function getFreezeDir(): string | null {
-  const stateRoot = process.env.GSTACK_HOME || process.env.GSTACK_STATE_DIR || process.env.CLAUDE_PLUGIN_DATA;
+  const stateRoot = process.env.GSTACK_HOME || process.env.GSTACK_STATE_DIR || process.env.OPENCODE_PLUGIN_DATA || process.env.CLAUDE_PLUGIN_DATA;
   const paths = stateRoot
     ? [stateRoot]
     : [
@@ -174,8 +174,8 @@ function isSafeRm(cmd: string): boolean {
 
 async function checkGstackInstalled(ctx: { $: any }): Promise<boolean> {
   const paths = [
-    `${process.env.HOME}/.claude/skills/gstack/bin`,
     `${process.env.HOME}/.config/opencode/skills/gstack/bin`,
+    `${process.env.HOME}/.claude/skills/gstack/bin`,
   ];
   for (const p of paths) {
     const result = await ctx.$.nothrow()`test -d "${p}"`.quiet();
