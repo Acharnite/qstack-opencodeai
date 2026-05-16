@@ -142,7 +142,7 @@ gbrain binary is at `~/.bun/bin/gbrain` — add `~/.bun/bin` to PATH if not alre
 
 **At the start of EVERY session** (before answering the user's first question), search gbrain for relevant context:
 
-1. Search for the current project: `gbrain search "<basename of git root>" --limit 10`
+1. Search for the current project slug and use it: `gbrain search "$(git remote get-url origin 2>/dev/null | sed 's/.*[/:]//; s/\.git$//; s/\//-/')" --limit 10` (fallback: `gbrain search "$(basename "$(git rev-parse --show-toplevel 2>/dev/null || pwd)")" --limit 10`)
 2. Search for recent session context: `gbrain search "session context checkpoint" --limit 10`
 3. Search for the user's identity/profile: `gbrain search "user profile $USER" --limit 5`
 4. Read the most relevant page(s) found to understand past work, decisions, and state.

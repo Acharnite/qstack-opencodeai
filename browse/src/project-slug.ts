@@ -8,9 +8,23 @@
 
 import * as path from 'path';
 import * as os from 'os';
+import * as fs from 'fs';
 import { execSync } from 'child_process';
 
 let cachedSlug: string | null = null;
+
+function getGstackBin(): string {
+  const envBin = process.env.GSTACK_BIN;
+  if (envBin) return envBin;
+  const candidates = [
+    path.join(os.homedir(), '.claude/skills/gstack/bin'),
+    path.join(os.homedir(), '.config/opencode/skills/gstack/bin'),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  return candidates[0];
+}
 
 export function getCurrentProjectSlug(): string {
   if (cachedSlug) return cachedSlug;
@@ -20,7 +34,7 @@ export function getCurrentProjectSlug(): string {
     return explicit;
   }
   try {
-    const slugBin = path.join(os.homedir(), '.claude/skills/gstack/bin/gstack-slug');
+    const slugBin = path.join(getGstackBin(), 'gstack-slug');
     const out = execSync(slugBin, { encoding: 'utf8', timeout: 2000 }).trim();
     const m = out.match(/SLUG="?([^"\n]+)"?/);
     cachedSlug = m ? m[1]! : (out || 'unknown');
