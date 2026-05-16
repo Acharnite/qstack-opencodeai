@@ -939,7 +939,12 @@ If gbrain is available, persist the context summary as a brain page for cross-se
 
 ```bash
 if command -v gbrain >/dev/null 2>&1 && [ -f "$HOME/.gbrain/config.json" ]; then
-  gbrain put_page --title "Session: {title} ({timestamp})" --tags "session,checkpoint,{SLUG}" <<'GBEOF'
+  _SLUG="session-$(date +%Y%m%d)-${SLUG:-unknown}"
+  gbrain put "$_SLUG" <<GBEOF
+---
+title: "Session: {title} ({timestamp})"
+tags: [session, checkpoint, {SLUG}]
+---
 {summary in markdown from Step 2 and Step 4}
 GBEOF
 fi
