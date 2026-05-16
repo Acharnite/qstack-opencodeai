@@ -68,10 +68,10 @@ describe('gstack-paths', () => {
   test('PLAN_ROOT chain: GSTACK_PLAN_DIR > CLAUDE_PLANS_DIR > HOME > CWD', () => {
     expect(run({ GSTACK_PLAN_DIR: '/tmp/explicit', HOME: '/h' }).PLAN_ROOT).toBe('/tmp/explicit');
     expect(run({ CLAUDE_PLANS_DIR: '/tmp/claude', HOME: '/h' }).PLAN_ROOT).toBe('/tmp/claude');
-    expect(run({ HOME: '/tmp/myhome' }).PLAN_ROOT).toBe('/tmp/myhome/.claude/plans');
+    expect(run({ HOME: '/tmp/myhome' }).PLAN_ROOT).toBe('/tmp/myhome/.config/opencode/plans');
     // CWD fallback only verifiable on POSIX — Git Bash auto-populates HOME.
     if (process.platform !== 'win32') {
-      expect(run({ HOME: '' }).PLAN_ROOT).toBe('.claude/plans');
+      expect(run({ HOME: '' }).PLAN_ROOT).toBe('.opencode/plans');
     }
   });
 
