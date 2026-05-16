@@ -1,8 +1,8 @@
-# qstack-opencodeai
+# gstack-opencodeai
 
 > **⚠️ WIP — Work in progress.** This is a fork of [garrytan/gstack](https://github.com/garrytan/gstack) with experimental opencode support. Things may break. Use at your own risk.
 
-qstack-opencodeai is a fork of [gstack](https://github.com/garrytan/gstack) that adds native support for [opencode](https://opencode.ai). It turns AI coding agents into a virtual engineering team — a CEO who rethinks the product, an eng manager who locks architecture, a designer who catches AI slop, a reviewer who finds production bugs, a QA lead who opens a real browser, and more.
+gstack-opencodeai is a fork of [gstack](https://github.com/garrytan/gstack) that adds native support for [opencode](https://opencode.ai). It turns AI coding agents into a virtual engineering team — a CEO who rethinks the product, an eng manager who locks architecture, a designer who catches AI slop, a reviewer who finds production bugs, a QA lead who opens a real browser, and more.
 
 **Who this is for:**
 - **opencode users** — use gstack skills without running Claude Code
@@ -10,7 +10,7 @@ qstack-opencodeai is a fork of [gstack](https://github.com/garrytan/gstack) that
 
 ## Quick start
 
-1. Install qstack (30 seconds — see below)
+1. Install gstack-opencodeai (30 seconds — see below)
 2. Run `/office-hours` — describe what you're building
 3. Run `/plan-ceo-review` on any feature idea
 4. Run `/review` on any branch with changes
@@ -24,7 +24,7 @@ qstack-opencodeai is a fork of [gstack](https://github.com/garrytan/gstack) that
 ### OpenCode (recommended)
 
 ```bash
-git clone --single-branch --depth 1 https://github.com/Acharnite/qstack-opencodeai.git ~/.config/opencode/skills/gstack && cd ~/.config/opencode/skills/gstack && ./setup --host opencode
+git clone --single-branch --depth 1 https://github.com/Acharnite/gstack-opencodeai.git ~/.config/opencode/skills/gstack && cd ~/.config/opencode/skills/gstack && ./setup --host opencode
 ```
 
 Copy `opencode.json.example` to `opencode.json` and adjust paths to match your environment:
@@ -36,7 +36,7 @@ cp opencode.json.example opencode.json
 ### Claude Code
 
 ```bash
-git clone --single-branch --depth 1 https://github.com/Acharnite/qstack-opencodeai.git ~/.claude/skills/gstack && cd ~/.claude/skills/gstack && ./setup
+git clone --single-branch --depth 1 https://github.com/Acharnite/gstack-opencodeai.git ~/.claude/skills/gstack && cd ~/.claude/skills/gstack && ./setup
 ```
 
 Then add a gstack section to your project's CLAUDE.md that says to use the `/browse` skill for all web browsing and lists the available skills.
@@ -53,7 +53,7 @@ Swap `required` for `optional` if you'd rather nudge teammates than block them.
 
 ### Other AI Agents
 
-qstack works on 10 AI coding agents. Target a specific agent with `./setup --host <name>`:
+gstack-opencodeai works on 10 AI coding agents. Target a specific agent with `./setup --host <name>`:
 
 | Agent | Flag | Skills install to |
 |-------|------|-------------------|
@@ -93,7 +93,7 @@ git push
 
 ## The sprint
 
-qstack is a process, not a collection of tools. The skills run in the order a sprint runs:
+gstack-opencodeai is a process, not a collection of tools. The skills run in the order a sprint runs:
 
 **Think → Plan → Build → Review → Test → Ship → Reflect**
 

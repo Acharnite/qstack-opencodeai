@@ -1,7 +1,7 @@
 {
   "name": "@acharnite/gstack-opencode",
   "version": "1.0.0",
-  "description": "Opencode plugin for qstack — safety hooks, team enforcement, auto-update",
+  "description": "Opencode plugin for gstack-opencodeai — safety hooks, team enforcement, auto-update",
   "type": "module",
   "main": "dist/index.js",
   "exports": {
