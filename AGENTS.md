@@ -144,7 +144,7 @@ gbrain binary is at `~/.bun/bin/gbrain` — add `~/.bun/bin` to PATH if not alre
 
 1. Search for the current project: `gbrain search "<basename of git root>" --limit 10`
 2. Search for recent session context: `gbrain search "session context checkpoint" --limit 10`
-3. Search for the user's identity/profile: `gbrain search "user profile kiffer" --limit 5`
+3. Search for the user's identity/profile: `gbrain search "user profile $USER" --limit 5`
 4. Read the most relevant page(s) found to understand past work, decisions, and state.
 
 This runs every session to provide continuity. If gbrain returns nothing, proceed without context.
