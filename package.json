@@ -1,7 +1,7 @@
 {
-  "name": "gstack",
-  "version": "1.39.1.0",
-  "description": "Garry's Stack — Claude Code skills + fast headless browser. One repo, one install, entire AI engineering workflow.",
+  "name": "gstack-opencodeai",
+  "version": "1.39.3.0",
+  "description": "Fork of gstack with opencode compatibility — multi-platform AI engineering skills + headless browser.",
   "license": "MIT",
   "type": "module",
   "bin": {

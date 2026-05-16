@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.39.3.0] - 2026-05-16
+
+### Fixed
+
+- **Hardcoded installation paths replaced with preamble env vars.** 15 instances across 6 source files (review.ts, tasks-section.ts, design.ts, testing.ts, browse.ts, project-slug.ts) hardcoded `~/.claude/skills/gstack/...` instead of using the preamble's `$GSTACK_BIN`, `$GSTACK_BROWSE`, and `$GSTACK_ROOT` env vars. gstack now resolves its own binaries regardless of installation path, host platform, or vendoring strategy. The browse daemon checks `GSTACK_BIN` env var and probes both Claude and opencode install paths as fallback. All SKILL.md files regenerated.
+
+### Changed
+
+- **AGENTS.md session start uses slug-aware search.** The mandatory gbrain context search at session start now resolves the project slug from `git remote get-url origin` instead of using `basename of git root`, making multi-project gbrain context accurate.
+
 ## [1.39.1.0] - 2026-05-15
 
 ## **Plan-mode reviews now enforce a blocking ExitPlanMode gate.**

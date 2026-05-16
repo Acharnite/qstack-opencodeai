@@ -407,7 +407,7 @@ function scanOpenCode(since: Date): Session[] {
     if (!hasRecentFile) continue;
 
     // Resolve cwd: decode directory name (same convention as Claude Code)
-    // e.g., -home-kiffer-gstack → /home/kiffer/gstack
+    // e.g., -home-user-gstack → /home/user/gstack
     const decoded = dirName.replace(/^-/, "/").replace(/-/g, "/");
     const cwd = existsSync(decoded) ? decoded : null;
     if (!cwd) continue;
