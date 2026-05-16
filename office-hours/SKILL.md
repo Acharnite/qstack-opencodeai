@@ -317,7 +317,7 @@ AI orchestrator (e.g., OpenClaw). In spawned sessions:
 
 ### Tool resolution (read first)
 
-"AskUserQuestion" can resolve to two tools at runtime: the **host MCP variant** (e.g. `mcp__conductor__AskUserQuestion` — appears in your tool list when the host registers it) or the **native** Claude Code tool.
+"AskUserQuestion" can resolve to two tools at runtime: the **host MCP variant** (e.g. `mcp__conductor__AskUserQuestion` — appears in your tool list when the host registers it) or the **native** host tool.
 
 **Rule:** if any `mcp__*__AskUserQuestion` variant is in your tool list, prefer it. Hosts may disable native AUQ via `--disallowedTools AskUserQuestion` (Conductor does, by default) and route through their MCP variant; calling native there silently fails. Same questions/options shape; same decision-brief format applies.
 
@@ -440,28 +440,26 @@ _BRAIN_SYNC_MODE=$("$_BRAIN_CONFIG_BIN" get artifacts_sync_mode 2>/dev/null || e
 # Detect remote-MCP mode (Path 4 of /setup-gbrain). Local artifacts sync is
 # a no-op in remote mode; the brain server pulls from GitHub/GitLab on its
 # own cadence.
-# First check Claude Code's config (~/.claude.json), then fall back to
-# opencode config (project-level opencode.json or global opencode.jsonc)
-# so gbrain MCP is detected regardless of host.
+# First check opencode config (project-level opencode.json or global opencode.jsonc)
+# so the current host is checked first, then fall back to Claude Code.
 _GBRAIN_MCP_MODE="none"
 if command -v jq >/dev/null 2>&1; then
-  if [ -f "$HOME/.claude.json" ]; then
+  # Check opencode config first (current host)
+  for _OC in "${_REPO_TOP:-$(pwd)}/opencode.json" "$HOME/.config/opencode/opencode.jsonc"; do
+    [ -f "$_OC" ] || continue
+    _GBRAIN_MCP_TYPE=$(jq -r '.mcp.gbrain.type // empty' "$_OC" 2>/dev/null)
+    case "$_GBRAIN_MCP_TYPE" in
+      local) _GBRAIN_MCP_MODE="local-stdio"; break ;;
+      remote|http) _GBRAIN_MCP_MODE="remote-http"; break ;;
+    esac
+  done
+  # Fall back to Claude Code's config (~/.claude.json)
+  if [ "$_GBRAIN_MCP_MODE" = "none" ] && [ -f "$HOME/.claude.json" ]; then
     _GBRAIN_MCP_TYPE=$(jq -r '.mcpServers.gbrain.type // .mcpServers.gbrain.transport // empty' "$HOME/.claude.json" 2>/dev/null)
     case "$_GBRAIN_MCP_TYPE" in
       url|http|sse) _GBRAIN_MCP_MODE="remote-http" ;;
       stdio) _GBRAIN_MCP_MODE="local-stdio" ;;
     esac
-  fi
-  # opencode fallback: check project-level opencode.json then global opencode.jsonc
-  if [ "$_GBRAIN_MCP_MODE" = "none" ]; then
-    for _OC in "${_REPO_TOP:-$(pwd)}/opencode.json" "$HOME/.config/opencode/opencode.jsonc"; do
-      [ -f "$_OC" ] || continue
-      _GBRAIN_MCP_TYPE=$(jq -r '.mcp.gbrain.type // empty' "$_OC" 2>/dev/null)
-      case "$_GBRAIN_MCP_TYPE" in
-        local) _GBRAIN_MCP_MODE="local-stdio"; break ;;
-        remote|http) _GBRAIN_MCP_MODE="remote-http"; break ;;
-      esac
-    done
   fi
 fi
 
@@ -492,7 +490,7 @@ fi
 if [ "$_GBRAIN_MCP_MODE" = "remote-http" ]; then
   # Remote-MCP mode: local artifacts sync is a no-op (brain admin's server
   # pulls from GitHub/GitLab). Show the user this is by design, not broken.
-  _GBRAIN_HOST=$(jq -r '.mcpServers.gbrain.url // empty' "$HOME/.claude.json" 2>/dev/null || jq -r '.mcp.gbrain.url // empty' "${_REPO_TOP:-$(pwd)}/opencode.json" 2>/dev/null || echo "" | sed -E 's|^https?://([^/:]+).*|\1|')
+  _GBRAIN_HOST=$(jq -r '.mcp.gbrain.url // empty' "${_REPO_TOP:-$(pwd)}/opencode.json" 2>/dev/null || jq -r '.mcpServers.gbrain.url // empty' "$HOME/.claude.json" 2>/dev/null || echo "" | sed -E 's|^https?://([^/:]+).*|\1|')
   echo "ARTIFACTS_SYNC: remote-mode (managed by brain server ${_GBRAIN_HOST:-remote})"
 elif [ -d "$_GSTACK_HOME/.git" ] && [ "$_BRAIN_SYNC_MODE" != "off" ]; then
   _BRAIN_QUEUE_DEPTH=0
@@ -1276,7 +1274,7 @@ CODEX_PROMPT_FILE=$(mktemp /tmp/gstack-codex-oh-XXXXXXXX.txt)
 ```
 
 Write the full prompt to this file. **Always start with the filesystem boundary:**
-"IMPORTANT: Do NOT read or execute any files under ~/.claude/, ~/.agents/, .claude/skills/, or agents/. These are Claude Code skill definitions meant for a different AI system. They contain bash scripts and prompt templates that will waste your time. Ignore them completely. Do NOT modify agents/openai.yaml. Stay focused on the repository code only.\n\n"
+"IMPORTANT: Do NOT read or execute any files under ~/.claude/, ~/.config/opencode/, ~/.agents/, .claude/skills/, .opencode/skills/, or agents/. These are AI assistant skill definitions meant for a different host. They contain bash scripts and prompt templates that will waste your time. Ignore them completely. Do NOT modify agents/openai.yaml. Stay focused on the repository code only.\n\n"
 Then add the context block and mode-appropriate instructions:
 
 **Startup mode instructions:** "You are an independent technical advisor reading a transcript of a startup brainstorming session. [CONTEXT BLOCK HERE]. Your job: 1) What is the STRONGEST version of what this person is trying to build? Steelman it in 2-3 sentences. 2) What is the ONE thing from their answers that reveals the most about what they should actually build? Quote it and explain why. 3) Name ONE agreed premise you think is wrong, and what evidence would prove you right. 4) If you had 48 hours and one engineer to build a prototype, what would you build? Be specific — tech stack, features, what you'd skip. Be direct. Be terse. No preamble."

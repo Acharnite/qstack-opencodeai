@@ -285,7 +285,7 @@ AI orchestrator (e.g., OpenClaw). In spawned sessions:
 
 ### Tool resolution (read first)
 
-"AskUserQuestion" can resolve to two tools at runtime: the **host MCP variant** (e.g. `mcp__conductor__AskUserQuestion` — appears in your tool list when the host registers it) or the **native** Claude Code tool.
+"AskUserQuestion" can resolve to two tools at runtime: the **host MCP variant** (e.g. `mcp__conductor__AskUserQuestion` — appears in your tool list when the host registers it) or the **native** host tool.
 
 **Rule:** if any `mcp__*__AskUserQuestion` variant is in your tool list, prefer it. Hosts may disable native AUQ via `--disallowedTools AskUserQuestion` (Conductor does, by default) and route through their MCP variant; calling native there silently fails. Same questions/options shape; same decision-brief format applies.
 
@@ -408,28 +408,26 @@ _BRAIN_SYNC_MODE=$("$_BRAIN_CONFIG_BIN" get artifacts_sync_mode 2>/dev/null || e
 # Detect remote-MCP mode (Path 4 of /setup-gbrain). Local artifacts sync is
 # a no-op in remote mode; the brain server pulls from GitHub/GitLab on its
 # own cadence.
-# First check Claude Code's config (~/.claude.json), then fall back to
-# opencode config (project-level opencode.json or global opencode.jsonc)
-# so gbrain MCP is detected regardless of host.
+# First check opencode config (project-level opencode.json or global opencode.jsonc)
+# so the current host is checked first, then fall back to Claude Code.
 _GBRAIN_MCP_MODE="none"
 if command -v jq >/dev/null 2>&1; then
-  if [ -f "$HOME/.claude.json" ]; then
+  # Check opencode config first (current host)
+  for _OC in "${_REPO_TOP:-$(pwd)}/opencode.json" "$HOME/.config/opencode/opencode.jsonc"; do
+    [ -f "$_OC" ] || continue
+    _GBRAIN_MCP_TYPE=$(jq -r '.mcp.gbrain.type // empty' "$_OC" 2>/dev/null)
+    case "$_GBRAIN_MCP_TYPE" in
+      local) _GBRAIN_MCP_MODE="local-stdio"; break ;;
+      remote|http) _GBRAIN_MCP_MODE="remote-http"; break ;;
+    esac
+  done
+  # Fall back to Claude Code's config (~/.claude.json)
+  if [ "$_GBRAIN_MCP_MODE" = "none" ] && [ -f "$HOME/.claude.json" ]; then
     _GBRAIN_MCP_TYPE=$(jq -r '.mcpServers.gbrain.type // .mcpServers.gbrain.transport // empty' "$HOME/.claude.json" 2>/dev/null)
     case "$_GBRAIN_MCP_TYPE" in
       url|http|sse) _GBRAIN_MCP_MODE="remote-http" ;;
       stdio) _GBRAIN_MCP_MODE="local-stdio" ;;
     esac
-  fi
-  # opencode fallback: check project-level opencode.json then global opencode.jsonc
-  if [ "$_GBRAIN_MCP_MODE" = "none" ]; then
-    for _OC in "${_REPO_TOP:-$(pwd)}/opencode.json" "$HOME/.config/opencode/opencode.jsonc"; do
-      [ -f "$_OC" ] || continue
-      _GBRAIN_MCP_TYPE=$(jq -r '.mcp.gbrain.type // empty' "$_OC" 2>/dev/null)
-      case "$_GBRAIN_MCP_TYPE" in
-        local) _GBRAIN_MCP_MODE="local-stdio"; break ;;
-        remote|http) _GBRAIN_MCP_MODE="remote-http"; break ;;
-      esac
-    done
   fi
 fi
 
@@ -460,7 +458,7 @@ fi
 if [ "$_GBRAIN_MCP_MODE" = "remote-http" ]; then
   # Remote-MCP mode: local artifacts sync is a no-op (brain admin's server
   # pulls from GitHub/GitLab). Show the user this is by design, not broken.
-  _GBRAIN_HOST=$(jq -r '.mcpServers.gbrain.url // empty' "$HOME/.claude.json" 2>/dev/null || jq -r '.mcp.gbrain.url // empty' "${_REPO_TOP:-$(pwd)}/opencode.json" 2>/dev/null || echo "" | sed -E 's|^https?://([^/:]+).*|\1|')
+  _GBRAIN_HOST=$(jq -r '.mcp.gbrain.url // empty' "${_REPO_TOP:-$(pwd)}/opencode.json" 2>/dev/null || jq -r '.mcpServers.gbrain.url // empty' "$HOME/.claude.json" 2>/dev/null || echo "" | sed -E 's|^https?://([^/:]+).*|\1|')
   echo "ARTIFACTS_SYNC: remote-mode (managed by brain server ${_GBRAIN_HOST:-remote})"
 elif [ -d "$_GSTACK_HOME/.git" ] && [ "$_BRAIN_SYNC_MODE" != "off" ]; then
   _BRAIN_QUEUE_DEPTH=0
