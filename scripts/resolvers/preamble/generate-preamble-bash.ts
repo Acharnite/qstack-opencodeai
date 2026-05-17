@@ -84,11 +84,7 @@ if [ -d ".opencode/skills/gstack" ] && [ ! -L ".opencode/skills/gstack" ]; then
     _VENDORED="yes"
   fi
 fi
-if [ "$_VENDORED" = "no" ] && [ -d ".claude/skills/gstack" ] && [ ! -L ".claude/skills/gstack" ]; then
-  if [ -f ".claude/skills/gstack/VERSION" ] || [ -d ".claude/skills/gstack/.git" ]; then
-    _VENDORED="yes"
-  fi
-fi
+# No .claude/skills/gstack vendored check — opencode only
 echo "VENDORED_GSTACK: $_VENDORED"
 echo "MODEL_OVERLAY: ${ctx.model ?? 'none'}"
 _CHECKPOINT_MODE=$(${ctx.paths.binDir}/gstack-config get checkpoint_mode 2>/dev/null || echo "explicit")

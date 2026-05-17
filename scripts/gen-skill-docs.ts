@@ -31,7 +31,7 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const HOST_ARG = process.argv.find(a => a.startsWith('--host'));
 type HostArg = Host | 'all';
 const HOST_ARG_VAL: HostArg = (() => {
-  if (!HOST_ARG) return 'claude';
+  if (!HOST_ARG) return 'opencode';
   const val = HOST_ARG.includes('=') ? HOST_ARG.split('=')[1] : process.argv[process.argv.indexOf(HOST_ARG) + 1];
   if (val === 'all') return 'all';
   try {
@@ -42,7 +42,7 @@ const HOST_ARG_VAL: HostArg = (() => {
 })();
 
 // For single-host mode, HOST is the host. For --host all, it's set per iteration below.
-let HOST: Host = HOST_ARG_VAL === 'all' ? 'claude' : HOST_ARG_VAL;
+let HOST: Host = HOST_ARG_VAL === 'all' ? 'opencode' : HOST_ARG_VAL;
 
 // ─── Model Overlay Selection ────────────────────────────────
 // --model is explicit. We do NOT auto-detect from host (host ≠ model).
@@ -50,7 +50,7 @@ let HOST: Host = HOST_ARG_VAL === 'all' ? 'claude' : HOST_ARG_VAL;
 import { ALL_MODEL_NAMES, resolveModel, type Model } from './models';
 const MODEL_ARG = process.argv.find(a => a.startsWith('--model'));
 const MODEL_ARG_VAL: Model = (() => {
-  if (!MODEL_ARG) return 'claude';
+  if (!MODEL_ARG) return 'none';
   const val = MODEL_ARG.includes('=') ? MODEL_ARG.split('=')[1] : process.argv[process.argv.indexOf(MODEL_ARG) + 1];
   const resolved = resolveModel(val);
   if (!resolved) {

@@ -12,6 +12,7 @@
  */
 
 export const ALL_MODEL_NAMES = [
+  'none',
   'claude',
   'opus-4-7',
   'gpt',
