@@ -190,6 +190,7 @@ export function normalize(raw: string): string {
   s = s.replace(/\f/g, "\n\n");
   s = s.replace(/\u00a0/g, " ");
   s = s.replace(/[\u200b\u200c\u00ad]/g, "");
+  s = s.replace(/(?<=\w)[\u2010\u002d]\s*\n\s*/g, "");
   s = s.replace(/[ \t]+$/gm, "");
   s = s.replace(/\n{3,}/g, "\n\n");
   s = s.trim();

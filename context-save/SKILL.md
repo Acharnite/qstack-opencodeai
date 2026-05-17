@@ -771,8 +771,10 @@ Replace `SKILL_NAME`, `OUTCOME`, and `USED_BROWSE` before running.
 
 Skills that run plan reviews (`/plan-*-review`, `/codex review`) include the EXIT PLAN MODE GATE blocking checklist at the end of the skill, which verifies the plan file ends with `## GSTACK REVIEW REPORT` before ExitPlanMode is called. Skills that don't run plan reviews (operational skills like `/ship`, `/qa`, `/review`) typically don't operate in plan mode and have no review report to verify; this footer is a no-op for them. Writing the plan file is the one edit allowed in plan mode.
 
+```bash
 _TEL_FILE="/tmp/.gstack-tel-start-${$}"
 echo "$(date +%s)" > "$_TEL_FILE"
+```
 
 # /context-save — Save Working Context
 
@@ -805,7 +807,9 @@ If the user types `/context-save resume` or `/context-save restore`, tell them:
 ### Step 1: Gather state
 
 ```bash
-eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)" && mkdir -p ~/.gstack/projects/$SLUG
+eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)" || true
+: "${SLUG:=unknown}"
+mkdir -p ~/.gstack/projects/${SLUG}
 ```
 
 Collect the current working state:
@@ -866,10 +870,12 @@ inject shell metacharacters into any subsequent command. The sanitizer is an
 allowlist: only `a-z 0-9 - .` survive.
 
 ```bash
-eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)" && mkdir -p ~/.gstack/projects/$SLUG
-eval "$(~/.claude/skills/gstack/bin/gstack-paths)"
-CHECKPOINT_DIR="$GSTACK_STATE_ROOT/projects/$SLUG/checkpoints"
-mkdir -p "$CHECKPOINT_DIR"
+eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)" || true
+: "${SLUG:=unknown}"
+mkdir -p ~/.gstack/projects/${SLUG}
+	eval "$(~/.claude/skills/gstack/bin/gstack-paths)"
+  CHECKPOINT_DIR="$GSTACK_STATE_ROOT/projects/${SLUG:-unknown}/checkpoints"
+  mkdir -p "$CHECKPOINT_DIR"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 # Bash-side title sanitize. Pass the raw title as $1 when running this block.
 # Example: TITLE_RAW="wintermute progress" bash -c '...'
@@ -972,9 +978,11 @@ Restore later with /context-restore.
 ### Step 1: Gather saved contexts
 
 ```bash
-eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)" && mkdir -p ~/.gstack/projects/$SLUG
+eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)" || true
+: "${SLUG:=unknown}"
+mkdir -p ~/.gstack/projects/${SLUG}
 eval "$(~/.claude/skills/gstack/bin/gstack-paths)"
-CHECKPOINT_DIR="$GSTACK_STATE_ROOT/projects/$SLUG/checkpoints"
+CHECKPOINT_DIR="$GSTACK_STATE_ROOT/projects/${SLUG:-unknown}/checkpoints"
 if [ -d "$CHECKPOINT_DIR" ]; then
   echo "CHECKPOINT_DIR=$CHECKPOINT_DIR"
   # Use find + sort instead of ls -1t: filename YYYYMMDD-HHMMSS prefix is the
