@@ -1595,7 +1595,9 @@ after resource selection in Phase 6 Beat 3.5.
 Write the design document to the project directory.
 
 ```bash
-eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)" && mkdir -p ~/.gstack/projects/$SLUG
+eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)" || true
+: "${SLUG:=unknown}"
+mkdir -p ~/.gstack/projects/${SLUG}
 USER=$(whoami)
 DATETIME=$(date +%Y%m%d-%H%M%S)
 ```

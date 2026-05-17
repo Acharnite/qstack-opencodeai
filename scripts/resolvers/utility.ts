@@ -5,7 +5,9 @@ export function generateSlugEval(ctx: TemplateContext): string {
 }
 
 export function generateSlugSetup(ctx: TemplateContext): string {
-  return `eval "$(${ctx.paths.binDir}/gstack-slug 2>/dev/null)" && mkdir -p ~/.gstack/projects/$SLUG`;
+  return `eval "$(${ctx.paths.binDir}/gstack-slug 2>/dev/null)" || true
+: "\${SLUG:=unknown}"
+mkdir -p ~/.gstack/projects/\${SLUG}`;
 }
 
 export function generateBaseBranchDetect(_ctx: TemplateContext): string {

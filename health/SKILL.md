@@ -974,7 +974,9 @@ DETAILS: Lint (3 warnings)
 ## Step 5: Persist to Health History
 
 ```bash
-eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)" && mkdir -p ~/.gstack/projects/$SLUG
+eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)" || true
+: "${SLUG:=unknown}"
+mkdir -p ~/.gstack/projects/${SLUG}
 ```
 
 Append one JSONL line to `~/.gstack/projects/$SLUG/health-history.jsonl`:
@@ -1002,7 +1004,9 @@ Read the last 10 entries from `~/.gstack/projects/$SLUG/health-history.jsonl` (i
 file exists and has prior entries).
 
 ```bash
-eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)" && mkdir -p ~/.gstack/projects/$SLUG
+eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)" || true
+: "${SLUG:=unknown}"
+mkdir -p ~/.gstack/projects/${SLUG}
 tail -10 ~/.gstack/projects/$SLUG/health-history.jsonl 2>/dev/null || echo "NO_HISTORY"
 ```
 
