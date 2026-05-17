@@ -44,7 +44,7 @@ export function readOverlay(model: string, seen: Set<string> = new Set()): strin
 }
 
 export function generateModelOverlay(ctx: TemplateContext): string {
-  if (!ctx.model) return '';
+  if (!ctx.model || ctx.model === 'none') return '';
 
   const content = readOverlay(ctx.model);
   if (!content) return '';

@@ -19,13 +19,16 @@ const opencode: HostConfig = {
 
   generation: {
     generateMetadata: false,
-    skipSkills: ['codex'],
+    skipSkills: ['codex', 'claude'],
   },
 
   pathRewrites: [
     { from: '~/.claude/skills/gstack', to: '~/.config/opencode/skills/gstack' },
     { from: '.claude/skills/gstack', to: '.opencode/skills/gstack' },
     { from: '.claude/skills', to: '.opencode/skills' },
+    { from: '.claude/', to: '.opencode/' },
+    { from: '~/.claude.json', to: '~/.config/opencode/opencode.jsonc' },
+    { from: 'CLAUDE.md', to: 'AGENTS.md' },
   ],
 
   suppressedResolvers: [],
